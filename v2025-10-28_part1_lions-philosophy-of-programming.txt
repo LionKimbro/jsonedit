@@ -1,0 +1,180 @@
+title: Coding Philosophical Statement Essay
+version: 2025-10-28
+date: 2025-10-28
+
+
+== Context ==
+date: 2025-10-30
+
+This is the first of three parts that comprise my statement of how I
+program in Python.
+
+    I.  Lion's Philosophy of Programming
+        v2025-10-28_part1_lions-philosophy-of-programming.txt
+
+   II.  Lion's Python Programming Guidelines
+        v2025-10-28_part2_lions-python-programming-guidelines.txt
+
+  III.  Lion's Python Programming Cookbook
+        v2025-10-28_part3_lions-python-programming-cookbook.txt
+
+
+== Purpose ==
+date: 2025-10-28
+
+This document serves as a preface to my coding guidelines. Its purpose
+is to share the broader philosophy, history, and context behind those
+guidelines. My immediate application is for Wing-Cat - the ChatGPT
+instance with which I have developed a long working history and mutual
+understanding - who serves as my companion in programming. But I also
+intend it for myself, as a statement of belief and understanding, and
+for anyone in the wider world who wishes to know the foundations of my
+approach to programming.
+
+
+== Three Pillars ==
+date: 2025-10-28
+
+The three pillars that follow are not stages in a sequence but
+dimensions of the work.  Each describes a field that continually
+arises while programming.
+
+"THE CREATIVE ENCOUNTER" speaks to the movement of thought and
+intuition as code takes form - the living process of making.
+
+"MANIAS, FADS, AND ABSURDITIES" concerns the cultural weather of
+software - the doctrines, trends, and orthodoxies that must be seen
+clearly if they are not to rule us.
+
+"CLARITY AND CONTROL" sets forth Lion’s own working method -- the
+principles and priorities by which he steers his craft. These are not
+claims of superiority, but expressions of the order he requires to
+work well.
+
+Together they form the space in which Wing-Cat and Lion program - a
+system of orientation rather than a path of progress.
+
+
+== The Creative Encounter ==
+date: 2025-10-28
+
+Programming is a messy and nonlinear activity. The actual work of
+building a program involves guessing, trying, breaking things,
+rewriting, and circling back repeatedly. It feels like wandering
+through fog. Yet the thing that we are crafting amidst all of that, is
+the opposite: a program is clean, orderly, and dependable. These two
+states - chaotic process and disciplined product - are not
+contradictions, but just how it works: the mess is how you get to the
+clarity.
+
+The workbench is messy. Tools lie about, half-built jigs crowd the
+edges, drawings contradict one another, and a glass of water risks the
+notes.  Everything is in flux - except for the thing being made. That,
+at the center, is the island of order: each piece fitted and refitted,
+clean lines emerging amid the storm of trial. The mess is not a flaw
+but the field from which precision rises.
+
+The fog is not the obstacle to programming - it is
+programming. Disorder is the substrate of discovery, the alchemy of
+the unknown made visible through effort. Clarity is what remains when
+the wandering has done its work. The task is not to escape the fog,
+but to learn to move within it gracefully, until what was once opaque
+begins to shine.
+
+
+== Manias, Fads, and Absurdities ==
+date: 2025-10-28
+
+Modern programming culture is full of "best practices," and countless
+hadiths: that globals are evil, that gotos are harmful, that variable
+names must be verbose, that state must be avoided, that everything
+must be an object. People chant "it's more maintainable" or "it's
+cleaner that way" or "it's more reusable." While most of these ideas
+began as glimmers of genuine insight and learning, they rapidly became
+dogmas that halt thought, rather than insights that spring from
+thought. What began as an insight was drafted into a "remedy," and the
+remedy soon became a carefully policed dictum. But what we so often
+need today is not another law, but freedom from policing - and not
+only in the social world, but even more within our own minds. So that,
+instead of heeding a voice that tells us what we must think and do, we
+can trust our own eyes, our own intuitions, and our own reason.
+
+When we stop trusting ourselves, programming becomes a game of
+obedience. We quote guidelines instead of looking, imitate patterns
+instead of thinking, and defend rules long disconnected from the
+problems we face. The craft loses its spark. To write living code
+demands reawakening the sense of discovery - to be involved, to risk
+being wrong, to see with one’s own eyes again. The task is not to
+replace one dogma with another, but to return to the source of
+judgment itself: the moment of seeing, deciding, and shaping. That is
+where programming begins to live.
+
+Every programmer eventually forms their own style, like a personality
+shaped by long work. I am stating mine clearly. I will be detailing my
+own rules and observations - the things I have seen with my own
+eyes. I intend to follow them, to challenge them, and to develop
+them. They are for me and for my ecology, though I encourage their
+exploration. But always remember: far more important than any rule is
+your own engagement, your own exploration, your own thinking, your own
+willingness to see and to experiment. That is where freedom in
+programming begins.
+
+
+== Clarity and Control ==
+date: 2025-10-28
+
+A working program is made of two things: steps and promises. The steps
+are what must happen; the promises are the relations the program must
+keep - either through the design of its steps or by its own correction
+as it runs. To make such a program, the programmer must have clarity
+and control.
+
+Clarity is the power to see what is there. Control is the power to
+make it so. One reveals, the other directs.  When both are present,
+the programmer can hold the whole program in mind, and safely change
+it into a desired shape.
+
+I keep coming back to these two because they are missing. Our tools
+have grown ornate, but their center has drifted away from human sight.
+We now write to satisfy systems - compilers, external libraries,
+frameworks, conventions - until the code no longer feels like our
+own. Clarity has come to mean length and ceremony. Control has been
+replaced with automation: pipelines, test arrays, layers of managed
+safety. We put on armor and forget how to move.
+
+True clarity is spare. It uses only what lets the mind see. True
+control is freedom through understanding - and through form. A clear
+notation, well-fitted to its purpose, grants leverage: the ability to
+alter a system with ease because its structure is concise and
+visible. A good regex can be changed in a breath; the same logic
+unrolled into loops and branches would sprawl beyond command. Brevity
+is not austerity - it is what allows both sight and motion. These are
+not romantic ideals but working necessities. Without them, code
+becomes something we tend rather than create, and change becomes a
+source of dread.
+
+To recover clarity and control is to take back the workbench. It is to
+make code that can be reasoned about, touched, and shaped again. It is
+to remember that programming is not the tending of systems, but the
+making of them.
+
+
+== Coda ==
+date: 2025-10-28
+
+We have spoken of three dimensions of my programming philosophy.
+
+"THE CREATIVE ENCOUNTER" described the personal and creative experience
+of making—what it is like to be in the shop, shaping order from the
+fog.
+
+"MANIAS, FADS, AND ABSURDITIES" examined the social ecology of the
+programmer—the beliefs, fashions, and orthodoxies that color the craft.
+
+"CLARITY AND CONTROL" turned to the values that guide the design of an
+actual program—the principles by which I steer my work and keep it
+alive.
+
+These three pillars together form the context for the next essay,
+which will leave philosophy behind and describe the practical
+guidelines I apply and intend for the programs that I write.

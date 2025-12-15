@@ -1,0 +1,934 @@
+date: 2025-10-29
+title: Lion's Python Programming Guidelines (v2025-10-28)
+chatgpt: https://chatgpt.com/c/6902f51d-b658-8329-8c63-f00e744cac94
+updated: 2025-11-18
+
+
+== Release Note ==
+date: 2025-10-30
+
+This document consolidates the lineage of
+python-coding-guidelines_v2025-10-15.txt and
+python-coding-guidelines-v02.md into a single definitive statement of
+Lion Kimbro’s programming method.  It codifies a minimal, expressive,
+and philosophically unified style of Python rooted in clarity,
+control, and moral simplicity.
+
+Structure:
+Part I – Principles sets the structural foundations.
+Part II – Guidelines defines operational practice.
+Part III – Data Management establishes persistence discipline.
+Part IV – Tkinter documents canonical GUI procedure.
+Part V – Documentation Practices describes the voice of code itself.
+
+This edition is frozen as the authoritative reference for the year
+2025.  Subsequent changes will appear as dated part-series revisions
+(e.g. v2025-12-14_part2_lions-python-programming-guidelines.txt).
+Cookbook entries will evolve independently as timestamped additions.
+Minor annotations to this text will be explicitly dated inline and
+compiled before any future major revision.
+
+== Updates ==
+date: 2025-11-18
+
+2025-11-18: major expansion on function naming;
+            also, divided into multiple LSF sections
+
+
+== I. PRINCIPLES ==
+date: 2025-10-29
+
+  Principle of Minimal Expression
+      "Do not build what you do not need."
+      
+  Principle of Soft Modularity
+      "Prefer small, repeatable patterns to heavy structures."
+
+  Principle of Trusted Conditions
+      "Stand by your assumptions."
+
+  Principle of The Castle Gate
+      "Be liberal in what you accept, but strict with what you admit."
+
+  Principle of Separate Validation
+      "Segregate validation & operation."
+
+  Principle of Uniformity Within the Castle
+      "Once inside, all data speaks one dialect."
+
+  Principle of Vulnerability
+      "Within the castle, prefer vulnerability to armor."
+
+
+--- Principle of Minimal Expression ---
+
+  "Do not build what you do not need."
+
+
+That is, rather than writing this:
+
+  class BigClassThatDoesImportantThings:
+      def __init__(self):
+          self.initialize()
+      def initialize(self):
+          self.msg = "Hello, world!"
+      def speak(self):
+          print(self.msg)
+
+
+Instead, write this:
+
+  def speak():
+      print("hello, world!")
+
+
+--- Principle of Soft Modularity ---
+
+  "Prefer small, repeatable patterns to heavy structures." 
+
+
+That is, rather than writing this:
+
+  class GuiBuilder:
+      def __init__(self, root):
+          self.root = root
+          self.build_header()
+          self.build_body()
+          self.build_footer()
+
+      def build_header(self):
+          frame = Frame(self.root)
+          Label(frame, text="Header").pack()
+          frame.pack()
+
+      def build_body(self):
+          frame = Frame(self.root)
+          Label(frame, text="Body").pack()
+          frame.pack()
+
+      def build_footer(self):
+          frame = Frame(self.root)
+          Label(frame, text="Footer").pack()
+          frame.pack()
+
+
+Instead, write this:
+
+  frame = Frame(root); Label(frame, text="Header").pack(); frame.pack()
+  frame = Frame(root); Label(frame, text="Body").pack();   frame.pack()
+  frame = Frame(root); Label(frame, text="Footer").pack(); frame.pack()
+
+
+--- The Parameter Principle ---
+
+  "Pass only what varies."
+
+
+That is, rather than writing this:
+
+  for x in range(10):
+      display(x, width=80, height=25, font="courier", fontsize=12, device=output_device)
+
+
+Instead, write this:
+
+  set_width(80)
+  set_height(25)
+  set_font("courier", 12)
+  set_device(output_device)
+
+  ...
+
+  for x in range(10):
+      display(x)
+
+
+
+--- Principle of Trusted Conditions ---
+
+  "Stand by your assumptions."
+
+
+That is, rather than writing this:
+
+  D.get("foo", None)  # "defensive programming", aka hedging
+
+
+Instead, write this:
+
+  D["foo"]  # pre-condition: "foo" is present
+
+
+--- Principle of The Castle Gate ---
+
+  "Be liberal in what you accept, but strict with what you admit."
+
+That is, rather than writing this:
+
+  def load_jpeg(f):
+      g[DATA] = jpegdata_from_file(f)
+
+  def load_png(f):
+      g[DATA] = pngdata_from_file(f)
+
+  def load_gif(f):
+      g[DATA] = gifdata_from_file(f)
+
+
+Instead, write this:
+
+  def load_jpeg(f):
+      g[DATA] = pixeldata_from_jpeg(f.read())
+
+  def load_png(f):
+      g[DATA] = pixeldata_from_png(f.read())
+
+  def load_gif(f):
+      g[DATA] = pixeldata_from_gif(f.read())
+
+Each loader normalizes external data into one canonical structure.
+Different file formats may enter, but only uniform pixel data is
+allowed inside the castle.
+
+
+--- Principle of Separate Validation ---
+
+  "Segregate validation & operation."
+
+That is, rather than writing this:
+
+  def handle_request(msg):
+      if len(msg) != 3:
+          raise TypeError("bad message")
+      if TYPE not in msg:
+          raise TypeError("missing type")
+      # more validation...
+      
+      if msg[TYPE] == PING:
+          do_something()
+
+
+Instead, write this:
+
+  def handle_request(msg):
+      validate_request(msg)
+
+      if msg[TYPE] == PING:
+          do_something()
+
+  def validate_request(msg):
+      if len(msg) != 3:
+          raise TypeError("bad message")
+      if TYPE not in msg:
+          raise TypeError("missing type")
+
+
+--- Principle of Uniformity Within The Castle ---
+
+  "Once inside, all data speaks one dialect."
+
+That is, rather than writing this:
+
+  [TO BE COLLECTED]
+    -- the code example here will likely include
+       checks for the presence of keys on input,
+       and produce branching behavior based on the presence
+       or absence of keys
+
+Instead, write this:
+
+  [TO BE COLLECTED]
+    -- the code example here will be direct,
+       with no "form checking"
+
+
+--- Principle of Vulnerability ---
+
+   "Within the castle, prefer vulnerability to armor."
+
+That is, rather than writing this:
+
+  (TO COLLECT)
+
+Instead, write this:
+
+  (TO COLLECT)
+
+
+
+== II. GUIDELINES ==
+date: 2025-10-29
+
+--- Function and Variable Names ---
+
+- snake_case
+- do NOT use type hints
+- use ultra-short variables wherever meaning is obvious by context
+  - s   -- a string (if the meaning is obvious)
+  - s1  -- a string (if the meaning is obvious by context)
+  - s2  -- another string (if the meaning is obvious by context)
+  - L   -- a list
+  - D   -- a dictionary
+  - i   -- an index
+  - j   -- secondary index
+  - cmd -- a command string issued by the user ("open", "ls", ...) (Feel free to use reasonable such things; I prefer it in fact.)
+
+
+--- Global Variables ---
+
+- IGNORE the cultural taboo against globals; they simplify programs.
+- Give each global a use policy -- clear rules for when and how it may be modified.
+- Global dictionaries and lists live at top level; mutate them in place, never re-assign.
+- Group scalar bundles (numbles, strings, etc.,) into bundles -- small, thematically related namespaces that are easy to inspect together while debugging.
+- Keep large or transient data out of these bundles, or place them in their own bundles.
+- The canonical global bundle is named "g".
+- The "global" keyword is never required: globals are never rebound, only modified in place.
+
+Example:
+
+  g = {
+    "count": 0,
+    "mode" : "idle",
+  }
+  
+  events = []
+  
+  def step():
+      g["count"] += 1
+      if g["mode"] == "idle":
+          print("waiting...")
+  
+  def log_event(msg):
+      events.append((g["count"], msg))
+
+
+--- Symbols ---
+
+(optional)
+
+- Use symbols liberally.  Rather than string keys, define symbols that evaluate to equivalent strings.
+- Symbols are always declared in all upper-case, and evaluate to upper-case.
+
+Example:
+
+  COUNT = "COUNT"
+  MODE = "MODE"
+  IDLE = "IDLE"
+  RUNNING = "RUNNING"
+
+  g = {
+      COUNT: 0,
+      MODE: IDLE  # IDLE or RUNNING
+  }
+
+
+--- Constants ---
+
+- Hard coded file paths are always constants.
+- Hard coded magic numbers are always constants.
+- Lookup tables are always constants.
+- If you are using symbols, then non-symbol named constants are given a name that is "k" (for "constant") + an all capital letters identifier.
+
+Example:
+
+  kFOO = 10
+  kBAR = "bar"
+  kCOLORS = {RED: "#ff0000", GREEN: "#00ff00", BLUE: "#0000ff"}
+  kCONFIGFILE_PATH = Path("D:\\conf\\program_x_config.json")
+
+
+--- Function Arguments ---
+
+- Do NOT use type annotations like "key: str" -- just "key" is fine.
+- Functions should have 0, 1, 2, or at most 3 arguments.
+  - 0 arguments ("nullary") -- the function simply does something.
+    - Example: refresh(), or reset()
+  - 1 argument -- the argument should be something that actually varies.
+    - ✅ say("hello") -- valid, because the message changes each call.
+    - ❌ doit(system_configuration) -- INVALID, because configuration is contextual; it belongs in globals, not in parameters.
+  - 2 arguments -- either a key/value pair, or a main argument + flags
+    - ✅ set_color("background", "blue") -- valid: key/value.
+    - ❌ say("hello", console)  -- invalid: second argument is contextual.
+    - ✅ say("hello", "c")  -- valid: last argument is a flags parameter (here "c" directs output to console)
+  - 3 arguments (maximum) -- the third argument must be used for flags that alter behavior.
+    - ✅ set_color("background", "blue", ".")  -- valid: "." means "dot stipple pattern."
+    - Most functions will never need this.
+
+
+== III. FUNCTION NAMES ==
+date: 2025-11-18
+
+These naming conventions create a street map of procedures — a small,
+deliberate set of signals that turn a codebase into a place you can
+move through with ease. Primitives become the highways of the system:
+short, fast, used constantly. General verb-object functions form the
+main roads, steady and familiar. Predicates are the road signs that
+guide your decisions. One-off functions become the side paths and
+alleys, each with a clearly marked purpose. And callback handlers act
+as the city gates, announcing when the outside world enters.
+
+The effect is a codebase with shape, hierarchy, and terrain.  Patterns
+of flow become visible the way avenues and lanes do when you look at a
+real map. A reader can tell at once where the major currents run,
+where a small detour lives, and where external events arrive.
+
+This structure means the codebase can be read like a map instead of a
+maze — coherent, navigable, and intuitively organized, even before you
+know every street by name.
+
+
+PRIMITIVES:  one word
+
+Functions called extremely frequently (multiple times per 50–100
+lines) should use a single-word name. These form the “core vocabulary”
+of the machine.
+
+Examples:
+  log("...")
+  send(msg)
+  recv()
+  push(obj)
+  pop()
+  flush()
+
+Characteristics:
+* minimal conceptual weight
+* high-frequency
+* context does most of the disambiguation
+* flags and global state may refine behavior internally
+
+GENERAL FUNCTIONS:  verb_object
+
+For the majority of reusable functions:
+* Use verb_object
+* Prefer simplicity over precision
+* Let context and flags disambiguate
+
+Examples:
+* send_message(msg, flags="..")
+* store_photo(data)
+* lookup_key(k)
+* process_event(evt)
+
+These define the ordinary action layer of the system: steady, reliable, predictable.
+
+ONE-OFF FUNCTIONAL UNITS: really_long_and_really_descriptive_function_names
+
+When a piece of code is ONLY ever called (and only ever TO be called)
+from one location and one location only, use
+really_long_and_really_descriptive_function_names.
+
+Reasoning:
+1. In the main, this is for the purpose of breaking a function into
+   peer-sized portions, to prevent one function from getting
+   overloaded.  It is like a portion of an outline, broken into
+   sub-parts.  Also, due to how my argument systems go, they are
+   typically 0-arguments.  So they can just read like prose.  And they
+   are called uniquely, so it's not spamming the code-base.  It makes
+   it really clear what this is for, what it's about.
+
+Purpose:
+* Signals: "This is basically a labelled code block."
+* Clarifies: "This is NOT intended for general calling."
+* Protects namespace clarity.
+* Improves high-level scanning.
+
+Examples:
+* rebuild_everything_from_disk_now()
+* do_initial_pipeline_routing_setup()
+* update_filetree_cache_after_reload()
+* check_for_restart_request_and_handle()
+
+
+PREDICATES:
+
+Predicates are boolean-returning functions that express conditions,
+readiness, permission, or intent. Their names must read like
+true/false questions and clearly signal whether they are reusable
+system checks or single-context conditions.
+
+Predicates fall into two distinct categories:
+
+1. System-Wide Predicates (Short, Reusable)
+
+These predicates represent general status checks used in multiple
+locations across the codebase. They often relate to system readiness,
+resource availability, message buffers, or policy decisions.
+
+They must be short, scannable, and uniform.
+
+Allowed prefixes:
+
+  is_  - state inquiry
+  has_  - possession/existence
+  should_  - policy or intention check
+  may_  - permission, capability, or conditional allowance
+
+Naming pattern: (not strict:)
+
+  is_<adjective_or_role>_<noun>()
+  has_<noun>()
+  should_<verb>()
+  may_<verb>()
+
+Examples:
+
+  is_system_ready()
+  is_stream_open()
+  has_outbox_messages()
+  has_pending_uploads()
+  should_persist_now()
+  should_retry_later()
+  may_attempt_reconnect()
+
+These predicates may use flags internally to support multiple modes,
+especially when a single verb-noun pair covers several subsystems:
+
+  is_ready("S")  # system
+  is_ready("R")  # robot
+
+All such predicates remain short, because they serve as stable,
+reusable building blocks of the system's logic.
+
+2. Single-Context Predicates (Long, Descriptive)
+
+If a predicate is only ever used in one location, or expresses a
+condition unique to a particular flow or moment in execution, it
+should use a long, prose-like name.
+
+These behave like labeled code blocks, not reusable tools.
+
+Naming Patterns:
+
+  is_this_the_first_time_the_application_has_started()
+  should_we_reload_everything_from_disk_now()
+  has_user_already_selected_a_photo_this_session()
+  may_we_proceed_with_initial_pairing_setup()
+
+Characteristics:
+* Used in one place only.
+* Highly descriptive.
+* Declarative and narrative.
+* Do not clutter the global vocabulary.
+* Prefixes (is_, has_, should_, may_) do not count as words for the "3+ word" rule
+
+These predicates exist to break a large flow into named, readable
+segments without introducing conceptual weight or namespace pollution.
+
+
+CALLBACK HANDLERS:  handle_...()
+
+Callback handlers are functions invoked by external systems or
+frameworks such as tkinter, sockets, network protocols, timers, event
+loops, file watchers, or GUI widgets. They have signatures you often
+do not control and represent the “edges” of the program where the
+outside world triggers internal logic.
+
+Because they are externally invoked and usually correspond to a unique
+event, callback handlers are nearly always single-source
+functions. Their names should reflect this.
+
+Therefore:
+all callback handlers should follow the long-name, 3+ word.
+(Note: the prefix handle_ or on_ does NOT count as a word.)
+
+1. All callback handlers must begin with handle_ or on_
+   (And: general preference for "handle_")
+
+This guarantees that when scanning function lists, you can instantly
+identify all handlers.
+
+Examples:
+
+* handle_when_user_clicks_the_pairing_button(event)
+* handle_when_the_socket_receives_a_packet(sock, data)
+* handle_when_the_camera_initialization_completes()
+* handle_when_desktop_sends_a_message(message)
+* handle_if_the_user_selects_a_new_photo()
+
+2. Callback handlers follow the “long descriptive name” rule
+
+After the handle_ prefix, callback handlers should use a
+narrative-style, prose-like name with 3 or more meaningful words,
+because:
+
+* they are nearly always called from a single place
+* they represent unique events
+* their meaning must be absolutely clear at a glance
+* they serve as labeled chapters in a procedural story
+* they improve traceability in stack traces
+
+Examples:
+
+* handle_when_the_camera_connection_fails(error)
+* handle_after_receiving_mqtt_message_from_desktop(msg)
+* handle_if_user_confirms_file_overwrite()
+
+
+FLAGS MAY SPLIT FUNCTIONALITY:
+
+When a function is high-value but multi-modal, prefer flags over many
+similar names.  Use long internal helpers for clarity.
+
+Example:
+
+  def send_message(msg, data=None, flags=""):
+      if flags == "T":
+          _send_tcp_message(msg, data)
+      elif flags == "O":
+          _send_message_to_target_object(msg, data)
+      elif flags == "U":
+          _send_message_to_user(msg, data)
+      else:
+          raise ValueError(flags)
+
+This produces a dual-tier naming architecture:
+* simple at call sites,
+* explicit inside
+
+This is a defining feature of my style, and should be preserved.
+
+JUSTIFICATION:
+
+Flags work because the surrounding context already supplies nearly all
+the meaning. In real code, function calls are read inside a story, not
+in isolation. When you see:
+
+def handle_when_user_clicks_save_button():
+    text = read_text("editor")
+    save_text(text, "F")   # file
+
+Even without knowing the flag, it is clear what’s happening: a user
+clicked a Save button, and the text is being saved somewhere. The "F"
+simply confirms the destination. The handler name and the logic
+leading to the call already narrowed the meaning to one obvious
+interpretation.
+
+Inside the implementation, the long descriptive functions carry the
+full clarity:
+
+def save_text(text, flags="F"):
+    if flags == "F":
+        _save_text_to_file(text)
+    elif flags == "N":
+        _save_text_to_network(text)
+    elif flags == "D":
+        _save_text_to_dictionary(text)
+    elif flags == "C":
+        _save_text_to_cache(text)
+
+Because each flag has one consistent meaning everywhere in the system,
+flags do not create ambiguity — they avoid clutter while preserving
+intent. Context carries the meaning; flags make it precise.
+
+
+INTERNAL HELPER NAMING:
+
+Internal helpers follow all the normal naming rules.
+The only difference is: they begin with an underscore.
+
+Examples:
+* _send()
+* _save_text_to_file()
+* _is_ready()
+* _handle_when_socket_closes()
+
+
+These naming conventions are not rules for their own sake. They are a
+way of giving shape to the codebase — a way of making the structure
+visible, the flow intuitive, and the machinery easy to live
+inside. They keep the surface simple, the details expressive, and the
+whole system navigable like a map instead of a maze.
+
+Their purpose is to support clarity, momentum, and the pleasure of
+writing code that feels like walking a familiar city: coherent,
+readable, and always pointing you in the right direction.
+
+
+== IV. CLASSES ==
+date: 2025-11-18
+
+- Avoid the use of classes.  Prefer global functions and global variables.
+  - I recognize that this goes against the grain, but I follow the Principle of Minimal Expression.
+- Acceptable exceptions include simple data containers such as Vector, Matrix, or similarly structured types.
+- If you find yourself reaching for a class, that's okay, but pause:
+  - Ask how the same design could be expressed without a class, and we can add that pattern to this guide.
+
+
+That is, rather than writing this:
+
+  class Counter:
+      def __init__(self):
+          self.count = 0
+      def inc(self):
+          self.count += 1
+      def show(self):
+          print(self.count)
+  
+  c = Counter()
+  c.inc()
+  c.show()
+
+
+Write this instead:
+
+  g = {"count": 0}
+
+  def inc():
+      g["count"] += 1
+
+  def show():
+      print(g["count"])
+
+  inc()
+  show()
+
+
+[TODO: INSERT OBJECT CURSORING EXAMPLE]
+
+
+== V. THREADS ==
+date: 2025-11-18
+
+Avoid threads whenever possible. They multiply complexity faster than
+they multiply performance.
+
+However, there are some major cases where they are justified:
+
+  1. Responsiveness in GUI programs.
+
+  Graphical interfaces (such as tkinter) often require that
+  long-running operations happen outside the main event loop. In these
+  cases, a simple worker thread can keep the interface responsive
+  while background work proceeds.
+
+    → See the Tkinter section for recommended patterns.
+
+
+  2. High-performance or blocking workloads.
+
+  Occasionally, a program must perform blocking I/O or coordinate with
+  hardware or external systems that cannot be easily structured around
+  event loops. In these cases, a carefully isolated thread may be
+  appropriate — but treat it as an exception, not a model.
+
+
+  3. APIs that mandate their use.
+  
+
+If you find yourself worrying about “thread safety,” you are already
+outside the ideal design space of these guidelines. Favor message
+queues, polling, or process-based coordination (see FileTalk) instead
+of shared mutable state.
+
+
+== VI. MULTI-CPU PROGRAMMING ==
+date: 2025-11-18
+
+If you need to take advantage of multiple processors, make use of the
+interpreters module (PEP 554/734).  Since almost all of my programming
+emphasizes basic types (numbers, lists, strings, dictionaries,) it's a
+natural candidate for the interpreters module.
+
+This said, in general, I avoid concurrencies like this.  The reason to
+do this would be solely for the sake of performance.
+
+
+
+== VII. INTER-PROCESS COMMUNICATION ==
+date: 2025-11-18
+
+Be aware of FileTalk — a simple, file-based system for programs to
+exchange information.  Consider what information your program might
+offer to others, and what it might receive in return.
+
+The FileTalk paradigm, in extreme synthesis:
+
+- Programs communicate by writing JSON files (with the extension
+  .json) into designated receiving folders.
+
+- The outermost JSON value is always a list or dictionary.
+
+- Message delivery is not immediate; processes poll their receiving
+  folders for new messages.
+
+- When reading, a process should retry if the file is not yet fully
+  written — a successful parse of the outermost list or dictionary
+  means the write is complete.
+
+- After a message is handled, the file should be deleted.
+
+- Archiving may be appropriate in special cases; ask before changing
+  this behavior.
+
+In short:
+My programs live in an ecology of processes that read and write one
+another’s files.  If your work involves multi-process coordination,
+ask about FileTalk conventions before proceeding.
+
+
+== VIII. DATA MANAGEMENT ==
+date: 2025-11-18
+
+--- Persistent Storage ---
+
+- Store data in JSON files whenever practical.
+- For small or human-edited files, use indented, readable JSON.
+- For long files, or machine-managed data, use compact (minified) JSON.
+- Always encode utf-8.
+
+
+--- Event Logs ---
+
+- Store event logs one JSON object per line (the JSONL format).
+- Each new event is:
+  1. Appended to an in-memory log, and
+  2. Immediately written to disk (append-only).
+- Execution follows logging, either:
+  - immediately after writing to disk completes, or
+  - on a periodic polling loop that processes any unhandled events.
+- On startup, the program reconstructs state by replaying the event
+  log in order.
+
+Snapshots (checkpoints of reconstructed state):
+- Snapshots may be used to accelerate startup or to expose current state to other programs.
+- For collaborative systems, write snapshots promptly after each user-visible change.
+- For cautious systems, defer until explicit COMMIT or SAVE actions.
+
+Event logging is not appropriate for all programs — discuss with Lion
+before implementing.
+
+
+--- Separation of File Serialization and Program Logic ---
+
+Keep file I/O separate from program logic. Reading and writing should
+be handled by small, dedicated functions whose only job is to move
+data to and from disk.
+
+
+--- Atomic Writes ---
+
+Always perform file writes atomically; See the "Atomic Writes" section
+of the Cookbook for possible implementation details.
+
+
+--- Singleton Files ---
+
+When there is only one canonical file of a kind — such as a single
+configuration or registry file — its read and write functions should
+be global and take no path arguments. The file path is effectively
+constant within the program’s universe, so passing it around only adds
+noise.
+
+
+== IX. TKINTER ==
+date: 2025-11-18
+
+--- Tkinter Threading ---
+
+Tkinter programs should use exactly two threads:
+
+  1. GUI thread — the main thread that owns and updates widgets.
+  2. Worker thread — performs background operations and long-running work.
+
+Threads exist only to keep the interface responsive.
+
+All GUI interaction must happen on the main thread; never update
+widgets directly from a worker.
+
+Use message queues to communicate safely:
+
+  gui_queue = queue.Queue()
+  work_queue = queue.Queue()
+  
+  def worker():
+      while g[WORKING]:
+          task = work_queue.get()     # blocking call
+          result = do_work(task)
+          gui_queue.put(result)
+
+The GUI thread should periodically poll gui_queue for updates
+(via after()), applying results as they arrive.
+
+For general guidance on threads and alternatives, see the Threads
+section.
+
+This guideline can be ignored if all work operations are most likely
+to take fewer than 50 ms to perform.
+
+
+--- Layout ---
+
+- Use grid() for widget placement; it’s flexible, spatially clear, and
+  scales well as interfaces grow.
+  
+- Reserve pack() only for trivial, linear layouts or prototypes.
+
+
+--- Widgets Dictionary ---
+
+Maintain a global dictionary named widgets to store references to UI
+elements.  This allows easy introspection and debugging without
+scattered globals.
+
+Example:
+
+  widgets = {}
+  
+  widgets["header"] = ttk.Label(root, text="Header")
+  widgets["header"].grid(row=0, column=0)
+  
+  widgets["body"] = ttk.Label(root, text="Body")
+  widgets["body"].grid(row=1, column=0)
+
+If multiple windows are active, use a list of widget dictionaries —
+one per window.  Never store widget references as loose globals.
+
+
+--- The Root Window (g[TK]) ---
+
+Always create and store the root window in the global dictionary g.
+
+  g[TK] = tkinter.Tk()
+  g[TK].withdraw()                   # hide the root window
+  g[TK].option_add("*tearOff", 0)    # disable tear-off menus
+
+This can be doubled with a widgets reference:
+
+  g[TK] = widgets["root"] = tkinter.tk()
+
+
+--- Style ---
+
+- Use ttk widgets whenever possible.
+- Define a coherent visual theme.  Prefer "dark mode" interfaces.
+- Avoid ad hoc widget color settings; define palette constants or
+  theme styles instead.
+- Ensure consistent padding, font, and border usage across all widgets.
+
+
+== X. DOCUMENTATION PRACTICES ==
+date: 2025-11-18
+
+--- Docstrings ---
+
+- Do not document short functions (1-2 lines long) that are easily
+  understandable at a glance.
+- Always document longer functions.
+- Do not fear docstrings becoming stale:
+  Docstrings can now be trivially generated by AI.
+- If in doubt, error on the side of verbosity.
+
+A docstring should let you immediately understand:
+  - What the function does.
+  - When or why it may be called (if not obvious).
+  - What commands or events it handles.
+  - What program state it modifies.
+  - The shape of the data it touches, if it isn't documented elsewhere.
+
+
+Example:
+
+  [EXAMPLE PENDING]
+
+

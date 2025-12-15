@@ -1,0 +1,729 @@
+{
+  "program": {
+    "name": "json_tree_editor",
+    "filename": "jsonedit.py",
+    "title": "JSON Tree Editor",
+    "version": "0.1-draft",
+    "language": "python",
+    "ui-framework": "tkinter",
+    "purpose": "General-purpose JSON editor with synchronized node<->text views",
+    "development-conversations": {
+      "2025-12-14": [
+        "https://chatgpt.com/c/693f436e-44c0-832d-b95a-07812c82c548",
+        "https://chatgpt.com/c/693f73ec-0830-832c-883a-3bcb60ada332"
+      ]
+    }
+  },
+  "document-model": {
+    "authoritative-state": "object",
+    "root-type": [
+      "object",
+      "array"
+    ],
+    "path-representation": "list",
+    "example-path": [
+      "modules",
+      2,
+      "functions",
+      0
+    ],
+    "ordering": {
+      "objects": "preserved",
+      "arrays": "preserved",
+      "reordering-is": "structural",
+      "value-identity": "unchanged"
+    },
+    "document-state": {
+      "dirty-tracking": {
+        "enabled": false,
+        "planned": true,
+        "structural-operations-mark-dirty": true
+      }
+    },
+    "structural-defaults": {
+      "new-object-key-name": "NEW_KEY",
+      "new-object-value": null,
+      "new-array-element": null,
+      "ensure-unique-object-keys": true,
+      "dictionary-insert": {
+        "prompt-for-index": true,
+        "default-value": null
+      },
+      "array-insert": {
+        "prompt-for-index": false,
+        "default-value": null
+      }
+    },
+    "structural-edit-classes": {
+      "identity-preserving": {
+        "operations": [
+          "raise-structural-item",
+          "lower-structural-item"
+        ]
+      },
+      "identity-creating": {
+        "operations": [
+          "insert-structural-item-after",
+          "duplicate-structural-item"
+        ]
+      },
+      "identity-modifying": {
+        "operations": [
+          "rename-structural-key"
+        ]
+      },
+      "identity-removing": {
+        "operations": [
+          "delete-structural-item"
+        ]
+      }
+    },
+    "copy-semantics": {
+      "structural-duplicate": "deep-copy"
+    }
+  },
+  "help": {
+    "id": "main_help",
+    "title": "JSON Tree Editor — Help",
+    "format": "plain-text",
+    "invoked-by": "display_help",
+    "content": [
+      "JSON Tree Editor lets you explore and safely edit JSON documents using a tree view and a text editor side by side.",
+      "",
+      "BASIC WORKFLOW",
+      "",
+      "1. Load JSON into the program:",
+      "   • Use File | Open to load a JSON file, or",
+      "   • Use File | Create from Clipboard to paste JSON from the clipboard.",
+      "",
+      "2. Navigate the JSON structure:",
+      "   • Click nodes in the tree on the left to select a portion of the JSON.",
+      "   • The selected subtree will appear as editable text on the right.",
+      "",
+      "3. Edit JSON text:",
+      "   • Modify the text in the editor pane on the right.",
+      "   • You may freely edit, reformat, or replace the JSON subtree.",
+      "",
+      "4. Commit your changes:",
+      "   • Press Ctrl+Enter, or",
+      "   • Click the 'Update Tree' button.",
+      "   • The tree view will refresh to reflect your changes.",
+      "",
+      "5. Export JSON:",
+      "   • Use 'Copy Tree' to copy the entire document (pretty-printed).",
+      "   • Use 'Copy Tree (compressed)' to copy compact JSON.",
+      "   • Use 'Copy Node' to copy only the selected subtree.",
+      "   • Use File | Save to write the document to disk.",
+      "",
+      "IMPORTANT WARNING",
+      "",
+      "Edits made in the text pane are NOT automatically committed.",
+      "Your changes are only applied when you explicitly commit them",
+      "using Ctrl+Enter or the 'Update Tree' button.",
+      "",
+      "If you navigate away from a node without committing,",
+      "your edits will be lost."
+    ]
+  },
+  "menu": {
+    "menubar": {
+      "id": "main_menubar",
+      "type": "tk.Menu",
+      "menus": [
+        {
+          "id": "file_menu",
+          "label": "File",
+          "items": [
+            {
+              "id": "file_open",
+              "label": "Open",
+              "action": "open_file",
+              "accelerator": "Ctrl+O",
+              "enabled": true
+            },
+            {
+              "id": "file_save",
+              "label": "Save",
+              "action": "save_file",
+              "accelerator": "Ctrl+S",
+              "enabled": true
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "id": "create_from_clipboard",
+              "label": "Create from Clipboard",
+              "action": "create_from_clipboard",
+              "accelerator": "Ctrl+N",
+              "enabled": true
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "id": "file_exit",
+              "label": "Exit",
+              "action": "exit_application",
+              "accelerator": "Ctrl+Q",
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "id": "edit_menu",
+          "label": "Edit",
+          "items": [
+            {
+              "id": "edit_raisekey",
+              "label": "Raise Item",
+              "action": "raise-structural-item",
+              "accelerator": "Ctrl+Up",
+              "enabled-when": "selected-node-is-structural"
+            },
+            {
+              "id": "edit_rename_key",
+              "label": "Rename Key",
+              "action": "rename-structural-key",
+              "accelerator": "Ctrl+R",
+              "enabled-when": "selected-node-is-object-key"
+            },
+            {
+              "id": "edit_delete_item",
+              "label": "Delete Item",
+              "action": "delete-structural-item",
+              "accelerator": "Delete",
+              "enabled-when": "selected-node-is-structural"
+            },
+            {
+              "id": "edit_duplicate_item",
+              "label": "Duplicate Item",
+              "action": "duplicate-structural-item",
+              "accelerator": "Ctrl+D",
+              "enabled-when": "selected-node-is-structural"
+            },
+            {
+              "id": "edit_insert_item_after",
+              "label": "Insert Item After",
+              "action": "insert-structural-item-after",
+              "accelerator": "Ctrl+Right",
+              "enabled-when": "selected-node-is-structural"
+            },
+            {
+              "id": "edit_lowerkey",
+              "label": "Lower Item",
+              "action": "lower-structural-item",
+              "accelerator": "Ctrl+Down",
+              "enabled-when": "selected-node-is-structural"
+            }
+          ]
+        },
+        {
+          "id": "help_menu",
+          "label": "Help",
+          "action": "display_help",
+          "accelerator": "Ctrl+H",
+          "enabled": true
+        }
+      ]
+    }
+  },
+  "ui": {
+    "layout": {
+      "type": "vertical_stack",
+      "grid-policy": {
+        "row-mapping": "regions",
+        "row-weight-key": "row-weight",
+        "default-row-weight": 0,
+        "collapse-unweighted-rows": true
+      },
+      "regions": [
+        {
+          "id": "editor_region",
+          "type": "horizontal_split",
+          "row-weight": 1,
+          "panes": [
+            {
+              "id": "tree_pane",
+              "position": "left",
+              "container": "tk.Frame",
+              "widget": {
+                "type": "ttk.Treeview",
+                "id": "json_tree",
+                "scrollbars": {
+                  "vertical": {
+                    "widget": "ttk.Scrollbar",
+                    "orientation": "vertical",
+                    "binds_to": "yview",
+                    "controlled_by": "yscrollcommand"
+                  },
+                  "horizontal": {
+                    "widget": "ttk.Scrollbar",
+                    "orientation": "horizontal",
+                    "binds_to": "xview",
+                    "controlled_by": "xscrollcommand"
+                  }
+                }
+              },
+              "purpose": "Structural navigation of JSON document"
+            },
+            {
+              "id": "text_pane",
+              "position": "right",
+              "container": "tk.Frame",
+              "widget": {
+                "type": "tk.Text",
+                "id": "json_text",
+                "scrollbars": {
+                  "vertical": {
+                    "widget": "tk.Scrollbar",
+                    "orientation": "vertical",
+                    "binds_to": "yview",
+                    "controlled_by": "yscrollcommand"
+                  },
+                  "horizontal": {
+                    "widget": "tk.Scrollbar",
+                    "orientation": "horizontal",
+                    "binds_to": "xview",
+                    "controlled_by": "xscrollcommand"
+                  }
+                }
+              },
+              "purpose": "Textual editing of selected JSON subtree"
+            }
+          ]
+        },
+        {
+          "id": "action_row",
+          "type": "horizontal_row",
+          "row-weight": 0,
+          "container": "tk.Frame",
+          "buttons": [
+            {
+              "id": "copy_tree_button",
+              "label": "Copy Tree",
+              "action": "copy_entire_document",
+              "target": "clipboard",
+              "format": "JSON, indent:2",
+              "enabled": true
+            },
+            {
+              "id": "copy_tree_compressed_button",
+              "label": "Copy Tree (compressed)",
+              "action": "copy_entire_document_compressed",
+              "target": "clipboard",
+              "format": "JSON, indent:0",
+              "enabled": true
+            },
+            {
+              "id": "copy_node_button",
+              "label": "Copy Node",
+              "action": "copy_selected_subtree",
+              "target": "clipboard",
+              "format": "JSON, indent: 2",
+              "enabled": true
+            },
+            {
+              "id": "update_tree_button",
+              "label": "Update Tree",
+              "action": "apply_text_to_tree",
+              "precondition": "valid_json",
+              "enabled": true,
+              "accelerator": "Ctrl+Enter",
+              "note": "after the tree is updated, it needs to expand to show the nodes that were visible before, and to select the node that was updated."
+            },
+            {
+              "id": "emit_filetalk_button",
+              "label": "Emit",
+              "action": "emit_selected_subtree",
+              "target": "filetalk",
+              "enabled": false,
+              "status": "placeholder"
+            }
+          ]
+        }
+      ]
+    },
+    "status_bar": {
+      "enabled": true,
+      "fields": [
+        "json_validity",
+        "error_message",
+        "selected_path"
+      ]
+    }
+  },
+  "tree-view": {
+    "node-types": {
+      "object": "{}",
+      "array": "[]",
+      "value": "leaf"
+    },
+    "display": {
+      "show-array-indices": true,
+      "show-object-keys": true,
+      "collapse-by-default": false
+    },
+    "selection": {
+      "single": true,
+      "selectable-nodes": [
+        "root",
+        "object",
+        "array",
+        "array-element",
+        "object-key"
+      ],
+      "selection-behavior": {
+        "preserve-selection-on-structural-reorder": true
+      },
+      "selection-after-delete": {
+        "priority": [
+          "next-sibling",
+          "previous-sibling",
+          "parent"
+        ]
+      }
+    }
+  },
+  "text-pane": {
+    "content-source": "selected-subtree",
+    "formatting": {
+      "indent": 2,
+      "sort-keys": false
+    },
+    "editing": {
+      "mode": "free-text",
+      "syntax": "json"
+    },
+    "stability-guarantees": [
+      "structural-operations-do-not-modify-text",
+      "structural-operations-do-not-trigger-text-refresh"
+    ],
+    "text-pane-selection-policy": {
+      "on-same-node": {
+        "description": "Selection refers to the same logical node as before the operation.",
+        "text-pane": "untouched"
+      },
+      "on-new-node": {
+        "description": "Selection moves to a newly created node.",
+        "text-pane": "refresh",
+        "cursor": "start",
+        "selection": "none"
+      },
+      "on-different-existing-node": {
+        "description": "Selection moves to a different existing node.",
+        "text-pane": "refresh",
+        "cursor": "start",
+        "selection": "none"
+      }
+    },
+    "text-pane-focus-policy": {
+      "on-new-node": {
+        "focus": "tree"
+      },
+      "on-same-node": {
+        "focus": "unchanged"
+      },
+      "on-different-existing-node": {
+        "focus": "tree"
+      }
+    }
+  },
+  "synchronization": {
+    "direction": "text-to-tree",
+    "update-mode": "commit",
+    "commit-controls": {
+      "apply-button": true,
+      "keyboard-shortcut": "Ctrl-Enter",
+      "scope": "global",
+      "override-widget-defaults": true,
+      "applies-when-focus-is": [
+        "text-pane"
+      ]
+    },
+    "validation": {
+      "on-commit": true,
+      "parser": "json.loads",
+      "error-reporting": {
+        "line": true,
+        "column": true,
+        "message": true
+      }
+    }
+  },
+  "operations": {
+    "select-node": {
+      "input": "tree-node",
+      "effect": "load subtree JSON into text pane"
+    },
+    "apply-edit": {
+      "input": "text-pane",
+      "precondition": "valid JSON",
+      "effect": "replace subtree at selected path"
+    },
+    "refresh-tree": {
+      "trigger": "successful apply-edit",
+      "effect": "rebuild tree view"
+    },
+    "raise-structural-item": {
+      "input": "selected-node",
+      "applies-to": [
+        "object-key",
+        "array-element"
+      ],
+      "preconditions": [
+        "parent-exists",
+        "sibling-count-greater-than-one"
+      ],
+      "behavior": {
+        "object": "move-key-earlier-with-wrap",
+        "array": "move-element-earlier-with-wrap"
+      },
+      "effects": {
+        "document-model": "reorder-structure",
+        "tree-view": "refresh",
+        "text-pane": "no-change"
+      },
+      "selection-after": "same-item-new-position",
+      "undoable": true,
+      "notes": [
+        "If the selected item is first, it wraps to the last position.",
+        "If the root is selected, the operation is a no-op."
+      ]
+    },
+    "lower-structural-item": {
+      "input": "selected-node",
+      "applies-to": [
+        "object-key",
+        "array-element"
+      ],
+      "preconditions": [
+        "parent-exists",
+        "sibling-count-greater-than-one"
+      ],
+      "behavior": {
+        "object": "move-key-later-with-wrap",
+        "array": "move-element-later-with-wrap"
+      },
+      "effects": {
+        "document-model": "reorder-structure",
+        "tree-view": "refresh",
+        "text-pane": "no-change"
+      },
+      "selection-after": "same-item-new-position",
+      "undoable": true
+    },
+    "insert-structural-item-after": {
+      "input": "selected-node",
+      "applies-to": [
+        "object-key",
+        "array-element"
+      ],
+      "preconditions": [
+        "parent-exists"
+      ],
+      "behavior": {
+        "object": {
+          "step-1": "prompt-for-key",
+          "step-2": "insert-new-key-after",
+          "default-value": null
+        },
+        "array": {
+          "step-1": "insert-new-element-after",
+          "default-value": null
+        }
+      },
+      "prompts": {
+        "object": "new-object-key"
+      },
+      "defaults": {
+        "object-key": "NEW_KEY -- !FIXME! we're going to ask the user for a key",
+        "object-value": null,
+        "array-element": null
+      },
+      "effects": {
+        "document-model": "insert-structure",
+        "tree-view": "refresh",
+        "text-pane": "refresh"
+      },
+      "selection-after": "new-item",
+      "text-pane-focus": {
+        "focus": true,
+        "selection": "entire-value"
+      },
+      "undoable": true,
+      "notes": [
+        "When inserting into an object, the user is prompted to enter a key name.",
+        "When inserting into an array, no prompt is shown.",
+        "If the root is selected, the operation is a no-op."
+      ]
+    },
+    "rename-structural-key": {
+      "input": "selected-node",
+      "applies-to": [
+        "object-key"
+      ],
+      "preconditions": [
+        "parent-is-object"
+      ],
+      "behavior": {
+        "step-1": "prompt-for-key",
+        "step-2": "rename-key-in-place"
+      },
+      "prompts": {
+        "object": "new-object-key"
+      },
+      "effects": {
+        "document-model": "rename-key",
+        "tree-view": "refresh",
+        "text-pane": "untouched"
+      },
+      "selection-after": "same-item",
+      "undoable": true,
+      "notes": [
+        "The value associated with the key is preserved.",
+        "The key remains in the same position within the object.",
+        "If the root is selected, the operation is a no-op."
+      ]
+    },
+    "delete-structural-item": {
+      "input": "selected-node",
+      "applies-to": [
+        "object-key",
+        "array-element"
+      ],
+      "preconditions": [
+        "parent-exists"
+      ],
+      "behavior": {
+        "object": "delete-key",
+        "array": "delete-element"
+      },
+      "prompts": {
+        "confirm": "delete-structural-item"
+      },
+      "effects": {
+        "document-model": "remove-structure",
+        "tree-view": "refresh",
+        "text-pane": "follow-selection-policy"
+      },
+      "selection-after": {
+        "priority": [
+          "next-sibling",
+          "previous-sibling",
+          "parent"
+        ],
+        "classification": "different-existing-node"
+      },
+      "undoable": true,
+      "notes": [
+        "If the root is selected, the operation is a no-op.",
+        "The text pane is not refreshed to avoid losing uncommitted edits."
+      ]
+    },
+    "duplicate-structural-item": {
+      "input": "selected-node",
+      "applies-to": [
+        "object-key",
+        "array-element"
+      ],
+      "preconditions": [
+        "parent-exists"
+      ],
+      "behavior": {
+        "object": {
+          "step-1": "prompt-for-key",
+          "step-2": "duplicate-key-after"
+        },
+        "array": {
+          "step-1": "duplicate-element-after"
+        }
+      },
+      "prompts": {
+        "object": "new-object-key"
+      },
+      "effects": {
+        "document-model": "insert-structure-with-copy",
+        "tree-view": "refresh",
+        "text-pane": "follow-selection-policy"
+      },
+      "selection-after": {
+        "classification": "new-node"
+      },
+      "focus-after": "tree",
+      "undoable": true,
+      "notes": [
+        "The duplicated item is inserted immediately after the selected item.",
+        "The value is a deep copy of the original.",
+        "If the root is selected, the operation is a no-op."
+      ]
+    }
+  },
+  "undo-redo": {
+    "enabled": false,
+    "planned": true,
+    "granularity": "subtree",
+    "storage": "in-memory",
+    "max-depth": 100,
+    "supported-operations": [
+      "raise-structural-item",
+      "lower-structural-item",
+      "apply-edit"
+    ]
+  },
+  "file-io": {
+    "open": {
+      "formats": [
+        "json",
+        "txt"
+      ],
+      "parse-on-load": true
+    },
+    "save": {
+      "pretty-print": true,
+      "atomic-write": true
+    }
+  },
+  "filetalk-integration": {
+    "enabled": false,
+    "role": "placeholder",
+    "description": "Optional emission of selected subtree as FileTalk message",
+    "output-channel": {
+      "type": "file",
+      "path": null
+    },
+    "message-format": {
+      "path": "json-path",
+      "payload": "json-subtree",
+      "timestamp": "unix-utc"
+    }
+  },
+  "extension-points": {
+    "live-update-mode": {
+      "enabled": false,
+      "description": "Optional future feature for real-time tree updates"
+    },
+    "schema-support": {
+      "enabled": false,
+      "description": "Optional JSON Schema validation and hints"
+    }
+  },
+  "user-prompts": {
+    "new-object-key": {
+      "title": "New JSON Key",
+      "message": "Enter a name for the new key:",
+      "input-type": "string",
+      "validation": [
+        "non-empty",
+        "not-duplicate-in-parent"
+      ],
+      "on-cancel": "abort-operation"
+    },
+    "delete-structural-item": {
+      "title": "Delete Item",
+      "message": "Delete the selected item?",
+      "confirmation": true,
+      "on-cancel": "abort-operation"
+    }
+  }
+}
