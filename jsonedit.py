@@ -28,9 +28,29 @@ g = {
     "suppress_tree_select": 0,    # recursion guard
     "text_dirty": 0,              # 0/1
     "last_error": "",
+    "embedded_editor_config": None  # dict or None
 }
 
 widgets = {}
+
+THEME_DARK = {
+    "bg": "#1e1e1e",
+    "fg": "#d4d4d4",
+    "muted": "#808080",
+    "accent": "#569cd6",
+    "error": "#f44747",
+
+    "text_bg": "#1e1e1e",
+    "text_fg": "#d4d4d4",
+    "text_insert": "#d4d4d4",
+    "text_select_bg": "#264f78",
+    "text_select_fg": "#ffffff",
+
+    "tree_bg": "#1e1e1e",
+    "tree_fg": "#d4d4d4",
+    "tree_select_bg": "#264f78",
+    "tree_select_fg": "#ffffff",
+}
 
 
 # ----------------------------
@@ -123,6 +143,25 @@ def atomic_write_text(path, text):
                 os.remove(tmp)
         except Exception:
             pass
+
+def extract_embedded_editor_config(doc):
+    # Returns a dict or None
+    
+    # Case 1: root is dict
+    if isinstance(doc, dict):
+        cfg = doc.get("jsonedit")
+        if isinstance(cfg, dict):
+            return cfg
+    
+    # Case 2: root is list, check element 0
+    if isinstance(doc, list) and doc:
+        first = doc[0]
+        if isinstance(first, dict):
+            cfg = first.get("jsonedit")
+            if isinstance(cfg, dict):
+                return cfg
+    
+    return None
 
 
 # ----------------------------
@@ -363,6 +402,7 @@ def open_file():
         return
 
     g["doc"] = obj
+    g["embedded_editor_config"] = extract_embedded_editor_config(g["doc"])
     g["file_path"] = Path(p)
     g["selected_path"] = tuple()
     g["selected_kind"] = "root"
@@ -410,6 +450,7 @@ def create_from_clipboard():
         return
 
     g["doc"] = obj
+    g["embedded_editor_config"] = extract_embedded_editor_config(g["doc"])
     g["file_path"] = None
     g["selected_path"] = tuple()
     g["selected_kind"] = "root"
@@ -837,10 +878,18 @@ def refresh_menu_enablement():
 
 def set_title():
     base = "JSON Tree Editor"
-    if g["file_path"]:
-        widgets["root"].title(f"{base} — {g['file_path'].name}")
+    
+    cfg = g.get("embedded_editor_config") or {}
+    suffix = cfg.get("window-title")
+    
+    if isinstance(suffix, str) and suffix.strip():
+        title = f"{base}: {suffix.strip()}"
+    elif g["file_path"]:
+        title = f"{base} — {g['file_path'].name}"
     else:
-        widgets["root"].title(base)
+        title = base
+    
+    widgets["root"].title(title)
 
 
 # ----------------------------
@@ -919,7 +968,7 @@ def setup_gui():
     text = tk.Text(text_frame, wrap="none", undo=False)
     widgets["text"] = text
     text.grid(row=0, column=0, sticky="nsew")
-
+    
     text_ys = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
     text_xs = tk.Scrollbar(text_frame, orient="horizontal", command=text.xview)
     text_ys.grid(row=0, column=1, sticky="ns")
@@ -981,6 +1030,44 @@ def setup_gui():
 
     refresh_menu_enablement()
     set_title()
+    apply_dark_mode()
+
+
+def apply_dark_mode():
+    t = widgets["text"]
+
+    t.configure(
+        background=THEME_DARK["text_bg"],
+        foreground=THEME_DARK["text_fg"],
+        insertbackground=THEME_DARK["text_insert"],
+        selectbackground=THEME_DARK["text_select_bg"],
+        selectforeground=THEME_DARK["text_select_fg"],
+    )
+
+    style = ttk.Style()
+    style.theme_use("default")  # important: stable baseline
+    
+    style.configure(
+        "Treeview",
+        background=THEME_DARK["tree_bg"],
+        foreground=THEME_DARK["tree_fg"],
+        fieldbackground=THEME_DARK["tree_bg"],
+    )
+    
+    style.map(
+        "Treeview",
+        background=[("selected", THEME_DARK["tree_select_bg"])],
+        foreground=[("selected", THEME_DARK["tree_select_fg"])],
+    )
+
+    style.configure(
+        "TLabel",
+        background=THEME_DARK["bg"],
+        foreground=THEME_DARK["fg"],
+    )
+
+    widgets["status_error"].configure(foreground=THEME_DARK["error"])
+
 
 
 def on_ctrl_up(event):

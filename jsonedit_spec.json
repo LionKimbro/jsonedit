@@ -1,4 +1,7 @@
 {
+  "jsonedit": {
+    "window-title": "JSON Edit specification"
+  },
   "program": {
     "name": "json_tree_editor",
     "filename": "jsonedit.py",
@@ -11,6 +14,12 @@
       "2025-12-14": [
         "https://chatgpt.com/c/693f436e-44c0-832d-b95a-07812c82c548",
         "https://chatgpt.com/c/693f73ec-0830-832c-883a-3bcb60ada332"
+      ],
+      "2025-12-15": [
+        "https://chatgpt.com/c/69404b21-311c-8327-9c95-bb88bef87887"
+      ],
+      "2025-12-16": [
+        "https://chatgpt.com/c/6941b60b-c7a8-8331-a3fe-9adc57397ecd"
       ]
     }
   },
@@ -80,6 +89,72 @@
     },
     "copy-semantics": {
       "structural-duplicate": "deep-copy"
+    }
+  },
+  "embedded-editor-configuration": {
+    "purpose": "Allow a JSON document to provide optional, non-structural hints to the editor environment.",
+    "discovery": {
+      "root-object": {
+        "description": "If the document root is a dictionary and contains a key named 'jsonedit' whose value is a dictionary, that dictionary is treated as editor configuration."
+      },
+      "root-array": {
+        "description": "If the document root is a list and element 0 is a dictionary containing a key named 'jsonedit' whose value is a dictionary, that dictionary is treated as editor configuration."
+      },
+      "invalid-config": "If a discovered 'jsonedit' value is not a dictionary, it is ignored."
+    },
+    "invariants": [
+      "Embedded editor configuration must not modify the JSON document.",
+      "Embedded editor configuration must be safe to ignore.",
+      "Malformed or unknown configuration keys must not produce errors or status messages."
+    ],
+    "keys": {
+      "window-title": {
+        "type": "string",
+        "status": "implemented",
+        "description": "Augments the application window title.",
+        "behavior": {
+          "base-title": "JSON Tree Editor",
+          "format": "JSON Tree Editor: <window-title>",
+          "default": "JSON Tree Editor"
+        }
+      },
+      "read-only": {
+        "type": "boolean",
+        "status": "disabled",
+        "description": "Requests that the document be opened in read-only mode.",
+        "notes": [
+          "When enabled, editing and structural operations would be disabled.",
+          "Text widget is read-only.",
+          "This key is specified for future use and is not currently implemented."
+        ]
+      },
+      "initial-selection-path": {
+        "type": "array",
+        "status": "disabled",
+        "description": "Specifies a JSON path to select after loading the document.",
+        "notes": [
+          "The path is advisory and ignored if invalid.",
+          "This key is specified for future use and is not currently implemented."
+        ]
+      },
+      "schema": {
+        "type": "object|string",
+        "status": "disabled",
+        "description": "Declares an associated schema for validation or annotation.",
+        "notes": [
+          "No schema processing is currently performed.",
+          "This key reserves namespace for future schema support."
+        ]
+      },
+      "tree-expansion": {
+        "type": "object",
+        "status": "disabled",
+        "description": "Hints for initial tree expansion behavior.",
+        "notes": [
+          "Potential future use includes controlled expansion depth or frozen expansion boundaries.",
+          "No tree expansion behavior is currently modified by this key."
+        ]
+      }
     }
   },
   "help": {
@@ -175,6 +250,21 @@
           "label": "Edit",
           "items": [
             {
+              "id": "edit_findkey",
+              "label": "Search…",
+              "action": "find-key",
+              "accelerator": "Ctrl-F",
+              "enabled-when": "always"
+            },
+            {
+              "id": "edit_repeatfindkey",
+              "label": "Repeat Search",
+              "action": "repeat-find-key",
+              "accelerator": "Shift-Ctrl-F",
+              "enabled-when": "always"
+            },
+            "-- separator --",
+            {
               "id": "edit_raisekey",
               "label": "Raise Item",
               "action": "raise-structural-item",
@@ -229,6 +319,22 @@
     }
   },
   "ui": {
+    "theme": {
+      "default": "dark",
+      "supported": [
+        "dark"
+      ],
+      "requirements": {
+        "background": "dark",
+        "text-contrast": "high",
+        "selection-visibility": "explicit",
+        "status-bar-readability": "must-be-clear"
+      },
+      "widget-notes": {
+        "tk.Text": "Must be explicitly styled; ignores ttk themes.",
+        "ttk.Treeview": "Selection colors must be defined via style.map()."
+      }
+    },
     "layout": {
       "type": "vertical_stack",
       "grid-policy": {
@@ -346,11 +452,50 @@
     },
     "status_bar": {
       "enabled": true,
-      "fields": [
-        "json_validity",
-        "error_message",
-        "selected_path"
-      ]
+      "role": "explanatory",
+      "purpose": "Provides immediate, human-readable explanations of editor state changes, validation results, and suppressed actions.",
+      "behavior": {
+        "must-explain": [
+          "invalid-commit",
+          "suppressed-text-refresh",
+          "uncommitted-text-state",
+          "selection-change-effects",
+          "successful-commit"
+        ],
+        "tone": "informational",
+        "verbosity": "minimal"
+      },
+      "find-key-messages": {
+        "progress": "Find \"<term>\": <index> of <count>",
+        "wrapped": "Find \"<term>\": wrapped (<index> of <count>)",
+        "no-matches": "Find \"<term>\": no matches",
+        "no-active-search": "No active search"
+      }
+    }
+  },
+  "communication-invariant": {
+    "explain-suppressed-actions": {
+      "rule": "If an explicit user action is suppressed, ignored, or rejected, the editor must provide an immediate, human-readable explanation via the status bar.",
+      "scope": [
+        "keyboard-invoked actions",
+        "menu-invoked actions",
+        "commit operations"
+      ],
+      "applies-to": [
+        "structural operations ignored due to focus rules",
+        "commit operations rejected due to invalid JSON",
+        "operations blocked by unmet preconditions"
+      ],
+      "does-not-apply-to": [
+        "normal consequences of successful structural operations",
+        "selection changes resulting from delete or insert actions"
+      ],
+      "delivery": {
+        "mechanism": "status-bar",
+        "timing": "immediate",
+        "tone": "informational",
+        "verbosity": "minimal"
+      }
     }
   },
   "tree-view": {
@@ -441,6 +586,24 @@
     "validation": {
       "on-commit": true,
       "parser": "json.loads",
+      "status-reporting": {
+        "validity-states": [
+          "valid",
+          "INVALID",
+          "(uncommitted edits)",
+          "saved",
+          "loaded",
+          "created",
+          "(no document)"
+        ],
+        "error-reporting": {
+          "location": [
+            "line",
+            "column"
+          ],
+          "message": true
+        }
+      },
       "error-reporting": {
         "line": true,
         "column": true,
@@ -465,6 +628,43 @@
     "refresh-tree": {
       "trigger": "successful apply-edit",
       "effect": "rebuild tree view"
+    },
+    "find-key": {
+      "purpose": "Locate object keys in the JSON document and navigate between their occurrences.",
+      "search-domain": "object-keys-only",
+      "matching": "exact-key-name",
+      "session-model": {
+        "stateful": true,
+        "components": [
+          "term",
+          "match-paths",
+          "current-index"
+        ],
+        "wrap-around": true
+      },
+      "prompt-behavior": {
+        "new-term": "start-new-search-session",
+        "same-term": "advance-to-next-match",
+        "empty-term": "advance-to-next-match",
+        "cancel": "no-op"
+      },
+      "effects": {
+        "tree-view": [
+          "expand-ancestors",
+          "select-matching-node"
+        ]
+      },
+      "invariants": [
+        "must-not-modify-document",
+        "must-preserve-existing-tree-state-except-for-required-expansion"
+      ],
+      "non-goals": [
+        "value-search",
+        "regex-search",
+        "case-insensitive-search",
+        "reverse-search",
+        "multi-highlight"
+      ]
     },
     "raise-structural-item": {
       "input": {
@@ -785,6 +985,19 @@
       "message": "Delete the selected item?",
       "confirmation": true,
       "on-cancel": "abort-operation"
+    },
+    "find-key": {
+      "title": "Search for:",
+      "input-type": "string",
+      "prepopulate": "previous-search-term",
+      "confirm-actions": [
+        "enter"
+      ],
+      "cancel-actions": [
+        "escape",
+        "cancel"
+      ],
+      "on-cancel": "no-op"
     }
   }
 }

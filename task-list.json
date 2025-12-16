@@ -1,0 +1,172 @@
+{
+  "jsonedit": {"window-title": "JSON Editor (jsonedit) Retrofit and Feature Backlog"},
+  "spec-retrofit-and-feature-backlog": {
+    "purpose": "Formalize existing implementation guarantees and desirable behaviors into the specification, plus identify future navigational features.",
+    "default-status": "may-implement",
+    "date-started": "2025-12-15",
+    "development-conversations": {
+      "2025-12-15": [
+        "https://chatgpt.com/c/69404b21-311c-8327-9c95-bb88bef87887"
+      ]
+    },
+    "coding-conventions": {
+      "priority": [
+        "priority-1 is highest priority, priority-2 is very much wanted, priority-3 is de-prioritized"
+      ],
+      "work-item-prefixes": {
+        "R": {
+          "name": "Spec Retrofit",
+          "definition": "An R-item represents behavior that already exists in the implementation and is relied upon in practice, but is not yet fully or explicitly described in the specification.",
+          "intent": [
+            "Bring the specification into alignment with the current implementation",
+            "Formalize implicit guarantees already enforced by the code"
+          ],
+          "non-goals": [
+            "Introducing new runtime behavior"
+          ],
+          "completion-criteria": [
+            "The specification accurately and explicitly describes the existing behavior"
+          ]
+        },
+        "F": {
+          "name": "Feature",
+          "definition": "An F-item represents new functionality that is not yet implemented in the codebase and requires design, implementation, and testing.",
+          "intent": [
+            "Extending the spec to describe new user-facing or internal capabilities",
+            "Implementing the new capabilities in the code."
+          ],
+          "non-goals": [],
+          "completion-criteria": [
+            "The feature is implemented in code",
+            "The specification describes the new behavior",
+            "The feature integrates with existing invariants and policies"
+          ]
+        }
+      }
+    },
+    "tasks": [
+      {
+        "id": "R1",
+        "title": "Formalize Path Display in Status Bar",
+        "description": "Specify that the status bar must always display the currently selected node’s full JSON path, updated immediately on selection change. This is a first-class navigational affordance, not debug output.",
+        "spec-areas": [
+          "ui.status_bar",
+          "tree-view.selection",
+          "operations.select-node"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "R2",
+        "title": "Specify Dirty-Aware Delete Selection Policy",
+        "description": "Codify the behavior where deleting a node while the text pane has uncommitted edits changes tree selection but does not refresh the text pane, with explicit status messaging explaining why.",
+        "spec-areas": [
+          "operations.delete-structural-item",
+          "text-pane.stability-guarantees",
+          "ui.status_bar"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "R3",
+        "title": "Global Expanded-State Preservation Invariant",
+        "description": "Declare that all tree refreshes (structural operations, apply-edit, reorder, insert, duplicate) must preserve expanded/collapsed state, not just updates triggered by text commits.",
+        "spec-areas": [
+          "tree-view.display",
+          "refresh-tree"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "R4",
+        "title": "Idempotent Same-Node Selection Rule",
+        "description": "Specify that selecting the same logical node again must be a no-op for the text pane, preventing cursor jumps, selection loss, or text refresh.",
+        "spec-areas": [
+          "tree-view.selection",
+          "text-pane-selection-policy"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "R5",
+        "title": "Wrap-Around Reordering Semantics for Objects and Arrays",
+        "description": "Explicitly document wrap-around behavior for raise/lower operations and require object key reordering to preserve identity via dictionary reconstruction.",
+        "spec-areas": [
+          "operations.raise-structural-item",
+          "operations.lower-structural-item",
+          "document-model.ordering"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "R6",
+        "title": "Root Node Structural Invariants",
+        "description": "Promote root constraints into formal invariants: root must be an object or array; structural operations on root are no-ops; apply-edit must validate root type.",
+        "spec-areas": [
+          "document-model.root-type",
+          "operations",
+          "synchronization.validation"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "R7",
+        "title": "Status Bar as Explanatory Surface",
+        "description": "Specify that the status bar must provide human-readable explanations for invalid commits, suppressed refreshes, dirty states, and selection-related effects.",
+        "spec-areas": [
+          "ui.status_bar",
+          "synchronization.validation"
+        ],
+        "status": "complete"
+      },
+      {
+        "id": "F1",
+        "title": "Find Key Functionality",
+        "description": "Add a command to search for object keys by name. Results should navigate the tree, select matching nodes, update the path display, and expand ancestors to reveal matches.",
+        "spec-areas": [
+          "operations.find-key",
+          "menu",
+          "keyboard-policy",
+          "tree-view.selection"
+        ],
+        "status": "priority-2"
+      },
+      {
+        "id": "F2",
+        "title": "Slide Panes",
+        "description": "Make it so that you can slide the pane's width, between the Tree view and the Text editor.",
+        "spec-areas": [
+          "unexplored; likely ui"
+        ],
+        "status": "may-implement"
+      },
+      {
+        "id": "F3",
+        "title": "JSON Parse Error Exhibition",
+        "description": "Whenever there's a JSON parse error, whether in loading, or trying to sync text back into the tree, if there's a JSON parse error, pop up a text area in a dialog with the text of the JSON and the location of the error highlighted, as well as a message that states what the error is.",
+        "spec-areas": [
+          "unexplored; likely ui, synchronization"
+        ],
+        "status": "priority-2"
+      },
+      {
+        "id": "F4",
+        "title": "Dark Mode",
+        "description": "Style the widgets for dark mode.",
+        "spec-areas": [
+          "ui"
+        ],
+        "status": "complete"
+      },
+      {
+        "id": "F5",
+        "title": "Special Node",
+        "description": "Make it so that if there's a special top-level node, 'jsonedit', it can include customizations in it, like window-title.",
+        "spec-areas": [
+          "ui, document model"
+        ],
+        "status": "complete"
+      }
+    ]
+  }
+}
