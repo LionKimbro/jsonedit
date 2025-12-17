@@ -998,7 +998,7 @@ def action_find_key():
 
     if not matches:
         clear_find_session()
-        set_status("Find \"%s\": no matches", "E")
+        set_status(f"Find \"{term}\": no matches", "E")
         return
 
     g_find_session.update({
@@ -1039,6 +1039,11 @@ def advance_find_session():
         set_status(f'Find "{term}": wrapped (1 of {len(matches)})', "E")
     else:
         set_status(f'Find "{term}": {i+1} of {len(matches)}', "E")
+
+def clear_find_session():
+    g_find_session["term"] = ""
+    g_find_session["matches"] = []
+    g_find_session["index"] = 0
 
 def navigate_to_match(i):
     select_path(g_find_session["matches"][i], "T")

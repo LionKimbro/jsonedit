@@ -1,12 +1,17 @@
 {
-  "jsonedit": {"window-title": "JSON Editor (jsonedit) Retrofit and Feature Backlog"},
+  "jsonedit": {
+    "window-title": "JSON Editor (jsonedit) Retrofit and Feature Backlog"
+  },
   "spec-retrofit-and-feature-backlog": {
     "purpose": "Formalize existing implementation guarantees and desirable behaviors into the specification, plus identify future navigational features.",
     "default-status": "may-implement",
     "date-started": "2025-12-15",
     "development-conversations": {
       "2025-12-15": [
-        "https://chatgpt.com/c/69404b21-311c-8327-9c95-bb88bef87887"
+          "https://chatgpt.com/c/69404b21-311c-8327-9c95-bb88bef87887"
+      ],
+      "2025-12-16": [
+          "https://chatgpt.com/c/6941b60b-c7a8-8331-a3fe-9adc57397ecd"
       ]
     },
     "coding-conventions": {
@@ -129,7 +134,7 @@
           "keyboard-policy",
           "tree-view.selection"
         ],
-        "status": "priority-2"
+        "status": "complete"
       },
       {
         "id": "F2",
@@ -138,7 +143,7 @@
         "spec-areas": [
           "unexplored; likely ui"
         ],
-        "status": "may-implement"
+        "status": "priority-2"
       },
       {
         "id": "F3",
