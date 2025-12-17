@@ -7,6 +7,7 @@ import copy
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox, simpledialog
+from tkinter.simpledialog import askstring
 from pathlib import Path
 import os
 import tempfile
@@ -29,6 +30,12 @@ g = {
     "text_dirty": 0,              # 0/1
     "last_error": "",
     "embedded_editor_config": None  # dict or None
+}
+
+g_find_session = {
+    "term": None,          # str
+    "matches": [],         # list of JSON paths (list-paths)
+    "index": -1            # current index into matches
 }
 
 widgets = {}
@@ -76,13 +83,27 @@ def pretty(obj, indent=2):
 def compact(obj):
     return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
 
-def set_status(validity=None, err=None, path=None):
-    if validity is not None:
-        widgets["status_validity"]["text"] = validity
-    if err is not None:
-        widgets["status_error"]["text"] = err
-    if path is not None:
-        widgets["status_path"]["text"] = path
+def set_status(msg, flags=""):
+    """Route a status message to one of the status bar channels.
+    
+    Flags:
+      "V" — validity / document state
+      "E" — explanatory or error message
+      "p" — JSON path display
+
+    Exactly one channel flag is expected.
+    """
+    if not flags:
+        raise ValueError("set_status requires a channel flag")
+
+    if flags == "V":
+        widgets["status_validity"]["text"] = msg
+    elif flags == "E":
+        widgets["status_error"]["text"] = msg
+    elif flags == "p":
+        widgets["status_path"]["text"] = msg
+    else:
+        raise ValueError("Unknown status flag: %r" % flags)
 
 def path_to_str(p):
     if p is None:
@@ -162,6 +183,17 @@ def extract_embedded_editor_config(doc):
                 return cfg
     
     return None
+
+def collect_key_paths(node, current_path, target_key, out_paths):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == target_key:
+                out_paths.append(current_path + [key])
+            collect_key_paths(value, current_path + [key], target_key, out_paths)
+
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            collect_key_paths(value, current_path + [i], target_key, out_paths)
 
 
 # ----------------------------
@@ -283,7 +315,7 @@ def refresh_tree(preserve_open=True, reselect_path=True):
     if preserve_open:
         restore_expanded_paths()
     if reselect_path and sel is not None:
-        select_path(sel, refresh_text=False)
+        select_path(sel)
 
 
 # ----------------------------
@@ -320,10 +352,16 @@ def refresh_text_for_path(p, cursor="start", selection="none"):
     obj = get_at_path(p) if p is not None else g["doc"]
     set_text(pretty(obj, indent=2), cursor=cursor, selection=selection)
 
-def select_path(p, refresh_text=True, cursor="start", selection="none"):
+def select_path(p, flags=""):
+    # Resolve the JSON path to its corresponding Treeview item ID.
+    # If the path is not currently represented in the tree, abort safely.
     iid = g["path_to_iid"].get(p)
     if not iid:
         return
+
+    # Perform a programmatic tree selection while suppressing the
+    # normal Treeview selection-change handler to avoid reentrancy
+    # and duplicate refresh side effects.
     g["suppress_tree_select"] += 1
     try:
         widgets["tree"].selection_set(iid)
@@ -332,15 +370,38 @@ def select_path(p, refresh_text=True, cursor="start", selection="none"):
     finally:
         g["suppress_tree_select"] -= 1
 
+    # Update authoritative editor selection state and reflect the
+    # newly selected JSON path in the status bar.
     kind = g["iid_to_kind"].get(iid)
     g["selected_path"] = p
     g["selected_kind"] = kind
-    set_status(path=path_to_str(p))
+    set_status(path_to_str(p), "p")
 
+    # Re-evaluate which menu actions are enabled based on the
+    # new selection and document state.
     refresh_menu_enablement()
 
-    if refresh_text:
-        refresh_text_for_path(p, cursor=cursor, selection=selection)
+    # Optionally refresh the text pane to show the selected subtree.
+    #
+    # Flags:
+    #   "T" — refresh text pane from the selected subtree
+    #   "S" — select all text after refresh (implies overwrite intent)
+    #
+    # Cursor positioning is only meaningful when text is refreshed.
+    # Absence of "T" means the text pane is left completely untouched.
+    if "T" in flags:
+        if "S" in flags:
+            refresh_text_for_path(
+                p,
+                cursor="select-entire-value",
+                selection="none"
+            )
+        else:
+            refresh_text_for_path(
+                p,
+                cursor="start",
+                selection="none"
+            )
 
 def handle_tree_selection_changed(event=None):
     if g["suppress_tree_select"]:
@@ -355,13 +416,13 @@ def handle_tree_selection_changed(event=None):
     # same-node policy: untouched
     if p == g["selected_path"]:
         g["selected_kind"] = kind
-        set_status(path=path_to_str(p))
+        set_status(path_to_str(p), "p")
         refresh_menu_enablement()
         return
 
     g["selected_path"] = p
     g["selected_kind"] = kind
-    set_status(path=path_to_str(p))
+    set_status(path_to_str(p), "p")
     refresh_menu_enablement()
 
     # Spec: navigating away loses uncommitted edits.
@@ -372,7 +433,7 @@ def handle_text_modified(event=None):
     # Tk Text sets modified flag; we mirror it.
     if widgets["text"].edit_modified():
         g["text_dirty"] = 1
-        set_status(validity="(uncommitted edits)")
+        set_status("(uncommitted edits)", "V")
     # do not clear edit_modified here; we clear it on explicit set/commit
 
 
@@ -406,9 +467,10 @@ def open_file():
     g["file_path"] = Path(p)
     g["selected_path"] = tuple()
     g["selected_kind"] = "root"
-    set_status(validity="loaded", err="", path=path_to_str(g["selected_path"]))
+    set_status("loaded", "V")
+    set_status(path_to_str(g["selected_path"]), "p")
     refresh_tree(preserve_open=False, reselect_path=False)
-    select_path(tuple(), refresh_text=True, cursor="start", selection="none")
+    select_path(tuple(), "T")
     set_title()
 
 def save_file():
@@ -431,7 +493,7 @@ def save_file():
         messagebox.showerror("Save", f"Could not write file:\n{e}")
         return
 
-    set_status(err="", validity="saved")
+    set_status("saved", "V")
     set_title()
 
 def create_from_clipboard():
@@ -454,9 +516,10 @@ def create_from_clipboard():
     g["file_path"] = None
     g["selected_path"] = tuple()
     g["selected_kind"] = "root"
-    set_status(validity="created", err="", path=path_to_str(g["selected_path"]))
+    set_status("created", "V")
+    set_status(path_to_str(g["selected_path"]), "p")
     refresh_tree(preserve_open=False, reselect_path=False)
-    select_path(tuple(), refresh_text=True, cursor="start", selection="none")
+    select_path(tuple(), "T")
     set_title()
 
 def exit_application():
@@ -473,7 +536,7 @@ def copy_entire_document(flags="P"):
     s = pretty(g["doc"], indent=2) if flags != "C" else compact(g["doc"])
     widgets["root"].clipboard_clear()
     widgets["root"].clipboard_append(s)
-    set_status(err="", validity="copied")
+    set_status("copied", "V")
 
 def copy_selected_subtree():
     if not is_doc_loaded() or not is_selected():
@@ -482,7 +545,7 @@ def copy_selected_subtree():
     s = pretty(obj, indent=2)
     widgets["root"].clipboard_clear()
     widgets["root"].clipboard_append(s)
-    set_status(err="", validity="copied node")
+    set_status("copied node", "V")
 
 
 # ----------------------------
@@ -496,7 +559,8 @@ def apply_text_to_tree(event=None):
     s = widgets["text"].get("1.0", "end-1c")
     obj, err = parse_json_text(s)
     if err:
-        set_status(validity="INVALID", err=err)
+        set_status("INVALID", "V")
+        set_status(str(err), "E")
         g["last_error"] = err
         return "break"
 
@@ -504,18 +568,19 @@ def apply_text_to_tree(event=None):
     p = g["selected_path"]
     if p == tuple():
         if not isinstance(obj, (dict, list)):
-            set_status(validity="INVALID", err="Root must be {} or [].")
+            set_status("INVALID", "V")
+            set_status("Root must be {} or [].", "E")
             return "break"
         g["doc"] = obj
     else:
         set_at_path(p, obj)
 
-    set_status(validity="valid", err="")
+    set_status("valid", "V")
     mark_text_dirty(0)
 
     # Tree refresh: preserve open nodes, reselect updated node
     refresh_tree(preserve_open=True, reselect_path=False)
-    select_path(p, refresh_text=False)
+    select_path(p)
     return "break"
 
 
@@ -536,6 +601,13 @@ def prompt_new_object_key(title="New JSON Key", message="Enter a name for the ne
 
 def confirm_delete():
     return messagebox.askyesno("Delete Item", "Delete the selected item?")
+
+def prompt_find_key(previous_term):
+    return askstring(
+        title="Search for:",
+        prompt="",
+        initialvalue=previous_term or ""
+    )
 
 
 # ----------------------------
@@ -559,7 +631,7 @@ def raise_structural_item():
         parent[i], parent[j] = parent[j], parent[i]
         np = pp + (j,)
         refresh_tree(preserve_open=True, reselect_path=False)
-        select_path(np, refresh_text=False)
+        select_path(np)
         return
 
     if isinstance(parent, dict):
@@ -575,7 +647,7 @@ def raise_structural_item():
             new_parent[kk] = parent[kk]
         set_at_path(pp, new_parent)
         refresh_tree(preserve_open=True, reselect_path=False)
-        select_path(p, refresh_text=False)
+        select_path(p)
         return
 
 def lower_structural_item():
@@ -595,7 +667,7 @@ def lower_structural_item():
         parent[i], parent[j] = parent[j], parent[i]
         np = pp + (j,)
         refresh_tree(preserve_open=True, reselect_path=False)
-        select_path(np, refresh_text=False)
+        select_path(np)
         return
 
     if isinstance(parent, dict):
@@ -611,7 +683,7 @@ def lower_structural_item():
             new_parent[kk] = parent[kk]
         set_at_path(pp, new_parent)
         refresh_tree(preserve_open=True, reselect_path=False)
-        select_path(p, refresh_text=False)
+        select_path(p)
         return
 
 def insert_structural_item_after():
@@ -627,7 +699,7 @@ def insert_structural_item_after():
         np = pp + (i + 1,)
         refresh_tree(preserve_open=True, reselect_path=False)
         # new node policy: refresh + select entire value
-        select_path(np, refresh_text=True, cursor="select-entire-value", selection="none")
+        select_path(np, "TS")
         widgets["text"].focus_set()
         return
 
@@ -669,7 +741,7 @@ def duplicate_structural_item():
         parent.insert(i + 1, deep_copy(parent[i]))
         np = pp + (i + 1,)
         refresh_tree(preserve_open=True, reselect_path=False)
-        select_path(np, refresh_text=True, cursor="select-entire-value", selection="none")
+        select_path(np, "TS")
         widgets["tree"].focus_set()
         return
 
@@ -736,7 +808,7 @@ def rename_structural_key():
     np = pp + (k,)
     refresh_tree(preserve_open=True, reselect_path=False)
     # rename: text untouched
-    select_path(np, refresh_text=False)
+    select_path(np)
     return
 
 def pick_selection_after_delete(pp, removed_key):
@@ -790,12 +862,13 @@ def delete_structural_item():
 
     # delete note: avoid losing uncommitted edits if text_dirty
     if g["text_dirty"]:
-        select_path(np, refresh_text=False)
-        set_status(err="Selection changed; text not refreshed (uncommitted edits).", validity="(uncommitted edits)")
+        select_path(np)
+        set_status("(uncommitted edits)", "V")
+        set_status("Selection changed; text not refreshed (uncommitted edits).", "E")
         return
 
     # otherwise follow "different-existing-node": refresh, cursor start, selection none
-    select_path(np, refresh_text=True, cursor="start", selection="none")
+    select_path(np, "T")
 
 
 # ----------------------------
@@ -864,17 +937,29 @@ def refresh_menu_enablement():
     if "edit_menu" not in widgets:
         return
 
-    # Edit menu indices:
-    # 0 Raise, 1 Rename, 2 Delete, 3 Duplicate, 4 Insert, 5 Lower
+    edit_menu = widgets["edit_menu"]
+
+    # Edit menu indices (updated):
+    # 0 Search
+    # 1 Repeat Search
+    # 2 separator
+    # 3 Raise
+    # 4 Rename
+    # 5 Delete
+    # 6 Duplicate
+    # 7 Insert
+    # 8 Lower
+
     can_struct = is_doc_loaded() and is_selected_structural()
     can_rename = is_doc_loaded() and is_selected_object_key()
 
-    widgets["edit_menu"].entryconfig(0, state=("normal" if can_struct else "disabled"))
-    widgets["edit_menu"].entryconfig(1, state=("normal" if can_rename else "disabled"))
-    widgets["edit_menu"].entryconfig(2, state=("normal" if can_struct else "disabled"))
-    widgets["edit_menu"].entryconfig(3, state=("normal" if can_struct else "disabled"))
-    widgets["edit_menu"].entryconfig(4, state=("normal" if can_struct else "disabled"))
-    widgets["edit_menu"].entryconfig(5, state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(3, state=("normal" if can_struct else "disabled"))  # Raise
+    edit_menu.entryconfig(4, state=("normal" if can_rename else "disabled")) # Rename
+    edit_menu.entryconfig(5, state=("normal" if can_struct else "disabled"))  # Delete
+    edit_menu.entryconfig(6, state=("normal" if can_struct else "disabled"))  # Duplicate
+    edit_menu.entryconfig(7, state=("normal" if can_struct else "disabled"))  # Insert
+    edit_menu.entryconfig(8, state=("normal" if can_struct else "disabled"))  # Lower
+
 
 def set_title():
     base = "JSON Tree Editor"
@@ -890,6 +975,73 @@ def set_title():
         title = base
     
     widgets["root"].title(title)
+
+
+# ----------------------------
+# finding
+# ----------------------------
+
+def action_find_key():
+    previous_term = g_find_session["term"]
+
+    term = prompt_find_key(previous_term)
+    if term is None:
+        return  # cancel → no-op
+
+    if term == "" or term == previous_term:
+        advance_find_session()
+        return
+
+    # New term → new session
+    matches = []
+    collect_key_paths(g["doc"], [], term, matches)
+
+    if not matches:
+        clear_find_session()
+        set_status("Find \"%s\": no matches", "E")
+        return
+
+    g_find_session.update({
+        "term": term,
+        "matches": [tuple(p) for p in matches],
+        "index": 0
+    })
+
+    navigate_to_match(0)
+    set_status(f'Find "{term}": 1 of {len(matches)}', "E")
+
+def action_repeat_find_key():
+    if not g_find_session["matches"]:
+        set_status("No active search", "E")
+        return
+
+    advance_find_session()
+
+def advance_find_session():
+    matches = g_find_session["matches"]
+    term = g_find_session["term"]
+
+    if not matches:
+        set_status("No active search", "E")
+        return
+
+    g_find_session["index"] += 1
+    wrapped = False
+
+    if g_find_session["index"] >= len(matches):
+        g_find_session["index"] = 0
+        wrapped = True
+
+    i = g_find_session["index"]
+    navigate_to_match(i)
+
+    if wrapped:
+        set_status(f'Find "{term}": wrapped (1 of {len(matches)})', "E")
+    else:
+        set_status(f'Find "{term}": {i+1} of {len(matches)}', "E")
+
+def navigate_to_match(i):
+    select_path(g_find_session["matches"][i], "T")
 
 
 # ----------------------------
@@ -921,6 +1073,9 @@ def setup_gui():
 
     edit_menu = tk.Menu(menubar)
     widgets["edit_menu"] = edit_menu
+    edit_menu.add_command(label="Search…", accelerator="Ctrl+F", command=action_find_key)
+    edit_menu.add_command(label="Repeat Search", accelerator="Shift+Ctrl+F", command=action_repeat_find_key)
+    edit_menu.add_separator()
     edit_menu.add_command(label="Raise Item", accelerator="Ctrl+Up", command=raise_structural_item)
     edit_menu.add_command(label="Rename Key", accelerator="Ctrl+R", command=rename_structural_key)
     edit_menu.add_command(label="Delete Item", accelerator="Delete", command=delete_structural_item)
@@ -1016,7 +1171,9 @@ def setup_gui():
     root.bind_all("<Control-n>", lambda e: create_from_clipboard())
     root.bind_all("<Control-q>", lambda e: exit_application())
     root.bind_all("<Control-h>", lambda e: display_help())
-
+    root.bind_all("<Control-f>", lambda e: action_find_key())
+    root.bind_all("<Control-F>", lambda e: action_repeat_find_key())
+    
     tree.bind("<Control-Up>", on_ctrl_up)
     tree.bind("<Control-Down>", on_ctrl_down)
     tree.bind("<Control-Right>", on_ctrl_right)
@@ -1106,7 +1263,7 @@ def main():
 
     # start empty
     g["doc"] = None
-    set_status(validity="(no document)", err="", path="")
+    set_status("(no document)", "V")
 
     root.mainloop()
 

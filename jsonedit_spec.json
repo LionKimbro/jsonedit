@@ -29,7 +29,7 @@
       "object",
       "array"
     ],
-    "path-representation": "list",
+    "path-representation": "tuple",
     "example-path": [
       "modules",
       2,
