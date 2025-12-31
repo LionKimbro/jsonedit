@@ -983,6 +983,8 @@ def refresh_menu_enablement():
     can_struct = is_doc_loaded() and is_selected_structural()
     can_rename = is_doc_loaded() and is_selected_object_key()
 
+    edit_menu.entryconfig(0, state=("normal" if can_struct else "disabled"))  # Raise
+    edit_menu.entryconfig(1, state=("normal" if can_struct else "disabled"))  # Raise
     edit_menu.entryconfig(3, state=("normal" if can_struct else "disabled"))  # Raise
     edit_menu.entryconfig(4, state=("normal" if can_rename else "disabled")) # Rename
     edit_menu.entryconfig(5, state=("normal" if can_struct else "disabled"))  # Delete
