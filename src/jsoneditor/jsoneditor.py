@@ -1,4 +1,4 @@
-# jsonedit.py
+# jsoneditor.py
 # JSON Tree Editor
 # v0.1-draft
 
@@ -29,7 +29,8 @@ g = {
     "suppress_tree_select": 0,    # recursion guard
     "text_dirty": 0,              # 0/1
     "last_error": "",
-    "embedded_editor_config": None  # dict or None
+    "embedded_editor_config": None,  # dict or None
+    "text_mode": "json"  # "json" | "value"
 }
 
 g_find_session = {
@@ -76,6 +77,13 @@ def is_selected_structural():
 
 def is_selected_object_key():
     return g["selected_kind"] == "object-key"
+
+def is_leaf_string_path(p):
+    try:
+        obj = get_at_path(p)
+    except Exception:
+        return False
+    return isinstance(obj, str)
 
 def pretty(obj, indent=2):
     return json.dumps(obj, indent=indent, ensure_ascii=False, sort_keys=False)
@@ -349,10 +357,19 @@ def set_text(s, cursor="start", selection="none"):
 
 def refresh_text_for_path(p, cursor="start", selection="none"):
     if not is_doc_loaded():
+        g["text_mode"] = "json"
         set_text("", cursor="start", selection="none")
         return
+
     obj = get_at_path(p) if p is not None else g["doc"]
-    set_text(pretty(obj, indent=2), cursor=cursor, selection=selection)
+
+    if isinstance(obj, str):
+        g["text_mode"] = "value"
+        set_text(obj, cursor=cursor, selection=selection)
+        set_status("editing value (string)", "V")
+    else:
+        g["text_mode"] = "json"
+        set_text(pretty(obj, indent=2), cursor=cursor, selection=selection)
 
 def select_path(p, flags=""):
     # Resolve the JSON path to its corresponding Treeview item ID.
@@ -587,7 +604,11 @@ def apply_text_to_tree(event=None):
         return "break"
 
     s = widgets["text"].get("1.0", "end-1c")
-    obj, err = parse_json_text(s)
+    p = g["selected_path"]
+    if g["text_mode"] == "value":
+        obj, err = s, None
+    else:
+        obj, err = parse_json_text(s)
     if err:
         set_status("INVALID", "V")
         set_status(str(err), "E")
