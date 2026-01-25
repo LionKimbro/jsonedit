@@ -8,10 +8,10 @@
     "date-started": "2025-12-15",
     "development-conversations": {
       "2025-12-15": [
-          "https://chatgpt.com/c/69404b21-311c-8327-9c95-bb88bef87887"
+        "https://chatgpt.com/c/69404b21-311c-8327-9c95-bb88bef87887"
       ],
       "2025-12-16": [
-          "https://chatgpt.com/c/6941b60b-c7a8-8331-a3fe-9adc57397ecd"
+        "https://chatgpt.com/c/6941b60b-c7a8-8331-a3fe-9adc57397ecd"
       ]
     },
     "coding-conventions": {
@@ -125,6 +125,15 @@
         "status": "complete"
       },
       {
+        "id": "R8",
+        "title": "Text-Editing String Leaf",
+        "description": "Specify that editing a leaf string node causes it to go into a string editing mode.",
+        "spec-areas": [
+          "UNKNOWN"
+        ],
+        "status": "may-implement"
+      },
+      {
         "id": "F1",
         "title": "Find Key Functionality",
         "description": "Add a command to search for object keys by name. Results should navigate the tree, select matching nodes, update the path display, and expand ancestors to reveal matches.",
@@ -143,7 +152,7 @@
         "spec-areas": [
           "unexplored; likely ui"
         ],
-        "status": "priority-2"
+        "status": "priority-1"
       },
       {
         "id": "F3",
@@ -171,6 +180,15 @@
           "ui, document model"
         ],
         "status": "complete"
+      },
+      {
+        "id": "F6",
+        "title": "Rename from Child Dict Key",
+        "description": "Peculiar feature: When you have a value that is a dictionary with just one key, -- pull that key up so that it replaces your present key, and it's value becomes your value.  This is useful when working with LLMs, because they often return single key dictionaries that you want to incorporate.",
+        "spec-areas": [
+          "UNKNOWN"
+        ],
+        "status": "priority-2"
       }
     ]
   }
