@@ -1174,7 +1174,7 @@ def setup_gui():
     text_frame.grid_rowconfigure(0, weight=1)
     text_frame.grid_columnconfigure(0, weight=1)
 
-    text = tk.Text(text_frame, wrap="none", undo=False)
+    text = tk.Text(text_frame, wrap="word", undo=False)
     widgets["text"] = text
     text.grid(row=0, column=0, sticky="nsew")
 
