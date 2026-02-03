@@ -3,6 +3,7 @@
 # v0.1-draft
 
 import json
+import sys
 import copy
 import tkinter as tk
 from tkinter import ttk
@@ -1327,6 +1328,12 @@ def main():
     set_status("(no document)", "V")
     set_status("", "E")
     set_status("", "p")
+
+    if len(sys.argv) > 1:
+        try:
+            open_file(Path(sys.argv[-1]))
+        except Exception:
+            pass
 
     root.mainloop()
 
