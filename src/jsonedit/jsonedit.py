@@ -1,4 +1,4 @@
-# jsoneditor.py
+# jsonedit.py
 # JSON Tree Editor
 # v0.1-draft
 
@@ -316,6 +316,35 @@ def restore_expanded_paths():
         if iid:
             widgets["tree"].item(iid, open=True)
 
+def first_bifurcation_path(doc):
+    p = tuple()
+    obj = doc
+    while True:
+        if isinstance(obj, list) and len(obj) == 1:
+            p = p + (0,)
+            obj = obj[0]
+            continue
+        if isinstance(obj, dict) and len(obj) == 1:
+            k = next(iter(obj))
+            p = p + (k,)
+            obj = obj[k]
+            continue
+        return p
+
+def expand_tree_to_path(p):
+    if not is_doc_loaded():
+        return
+    if p is None:
+        return
+    cur = tuple()
+    while True:
+        iid = g["path_to_iid"].get(cur)
+        if iid:
+            widgets["tree"].item(iid, open=True)
+        if cur == p:
+            break
+        cur = cur + (p[len(cur)],)
+
 def refresh_tree(flags=""):
     preserve_open = "O" in flags
     reselect_path = "p" in flags
@@ -505,6 +534,7 @@ def open_file(p: Path):
     set_status(path_to_str(g["selected_path"]), "p")
 
     refresh_tree()
+    expand_tree_to_path(first_bifurcation_path(g["doc"]))
     select_path(tuple(), "T")
     set_title()
 
@@ -557,6 +587,7 @@ def create_from_clipboard():
     set_status("", "E")
     set_status(path_to_str(g["selected_path"]), "p")
     refresh_tree()
+    expand_tree_to_path(first_bifurcation_path(g["doc"]))
     select_path(tuple(), "T")
     set_title()
 
