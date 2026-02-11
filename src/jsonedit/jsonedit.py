@@ -5,6 +5,8 @@
 import json
 import sys
 import copy
+import subprocess
+import shutil
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox, simpledialog
@@ -48,6 +50,10 @@ THEME_DARK = {
     "muted": "#808080",
     "accent": "#569cd6",
     "error": "#f44747",
+    "button_bg": "#2d2d2d",
+    "button_active_bg": "#3a3a3a",
+    "button_fg": "#e6e6e6",
+    "scroll_trough": "#2a2a2a",
 
     "text_bg": "#1e1e1e",
     "text_fg": "#d4d4d4",
@@ -594,6 +600,15 @@ def create_from_clipboard():
 def exit_application():
     widgets["root"].destroy()
 
+def spawn_new_instance():
+    try:
+        if shutil.which("jsonedit"):
+            subprocess.Popen(["jsonedit"])
+            return
+        subprocess.Popen([sys.executable, "-m", "jsonedit"])
+    except Exception as e:
+        messagebox.showerror("New Instance", f"Could not launch new instance:\n{e}")
+
 
 # ----------------------------
 # clipboard ops
@@ -1000,11 +1015,19 @@ def display_help():
     w = tk.Toplevel(widgets["root"])
     w.title("JSON Tree Editor — Help")
     w.geometry("720x520")
+    w.configure(background=THEME_DARK["bg"])
     t = tk.Text(w, wrap="word")
     t.insert("1.0", s)
-    t.config(state="disabled")
+    t.config(
+        state="disabled",
+        background=THEME_DARK["text_bg"],
+        foreground=THEME_DARK["text_fg"],
+        insertbackground=THEME_DARK["text_insert"],
+        selectbackground=THEME_DARK["text_select_bg"],
+        selectforeground=THEME_DARK["text_select_fg"],
+    )
     t.grid(row=0, column=0, sticky="nsew")
-    sb = tk.Scrollbar(w, command=t.yview)
+    sb = ttk.Scrollbar(w, command=t.yview)
     sb.grid(row=0, column=1, sticky="ns")
     t.config(yscrollcommand=sb.set)
     w.grid_rowconfigure(0, weight=1)
@@ -1159,6 +1182,8 @@ def setup_gui():
     file_menu.add_separator()
     file_menu.add_command(label="Create from Clipboard", accelerator="Ctrl+N", underline=12, command=create_from_clipboard)
     file_menu.add_separator()
+    file_menu.add_command(label="New Instance", accelerator="Ctrl+I", underline=0, command=spawn_new_instance)
+    file_menu.add_separator()
     file_menu.add_command(label="Exit", accelerator="Ctrl+Q", underline=1, command=exit_application)
     menubar.add_cascade(label="File", underline=0, menu=file_menu)
 
@@ -1210,8 +1235,8 @@ def setup_gui():
     widgets["text"] = text
     text.grid(row=0, column=0, sticky="nsew")
 
-    text_ys = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
-    text_xs = tk.Scrollbar(text_frame, orient="horizontal", command=text.xview)
+    text_ys = ttk.Scrollbar(text_frame, orient="vertical", command=text.yview)
+    text_xs = ttk.Scrollbar(text_frame, orient="horizontal", command=text.xview)
     text_ys.grid(row=0, column=1, sticky="ns")
     text_xs.grid(row=1, column=0, sticky="ew")
     text.configure(yscrollcommand=text_ys.set, xscrollcommand=text_xs.set)
@@ -1262,6 +1287,7 @@ def setup_gui():
     root.bind_all("<Control-!>", lambda e: handle_reload_file_command())
     root.bind_all("<Control-s>", lambda e: save_file())
     root.bind_all("<Control-n>", lambda e: create_from_clipboard())
+    root.bind_all("<Control-i>", lambda e: spawn_new_instance())
     root.bind_all("<Control-q>", lambda e: exit_application())
     root.bind_all("<Control-h>", lambda e: display_help())
     root.bind_all("<Control-f>", lambda e: action_find_key())
@@ -1285,6 +1311,7 @@ def setup_gui():
 
 def apply_dark_mode():
     t = widgets["text"]
+    root = widgets["root"]
 
     t.configure(
         background=THEME_DARK["text_bg"],
@@ -1295,7 +1322,9 @@ def apply_dark_mode():
     )
 
     style = ttk.Style()
-    style.theme_use("default")  # important: stable baseline
+    style.theme_use("clam")
+
+    root.configure(background=THEME_DARK["bg"])
     
     style.configure(
         "Treeview",
@@ -1316,7 +1345,62 @@ def apply_dark_mode():
         foreground=THEME_DARK["fg"],
     )
 
+    style.configure(
+        "TFrame",
+        background=THEME_DARK["bg"],
+    )
+
+    style.configure(
+        "TPanedwindow",
+        background=THEME_DARK["bg"],
+    )
+
+    style.configure(
+        "TButton",
+        background=THEME_DARK["button_bg"],
+        foreground=THEME_DARK["button_fg"],
+        bordercolor=THEME_DARK["bg"],
+        focusthickness=0,
+    )
+
+    style.map(
+        "TButton",
+        background=[("active", THEME_DARK["button_active_bg"])],
+        foreground=[("disabled", THEME_DARK["muted"])],
+    )
+
+    style.configure(
+        "TScrollbar",
+        background=THEME_DARK["bg"],
+        troughcolor=THEME_DARK["bg"],
+        bordercolor=THEME_DARK["bg"],
+        lightcolor=THEME_DARK["bg"],
+        darkcolor=THEME_DARK["bg"],
+        arrowcolor=THEME_DARK["fg"],
+    )
+
+    style.map(
+        "TScrollbar",
+        background=[("active", THEME_DARK["bg"])],
+        arrowcolor=[("active", THEME_DARK["fg"])],
+    )
+
     widgets["status_error"].configure(foreground=THEME_DARK["error"])
+
+    menu_bg = THEME_DARK["bg"]
+    menu_fg = THEME_DARK["fg"]
+    menu_active_bg = THEME_DARK["button_active_bg"]
+    menu_active_fg = THEME_DARK["fg"]
+
+    for key in ("menubar", "file_menu", "edit_menu", "help_menu"):
+        m = widgets.get(key)
+        if m:
+            m.configure(
+                background=menu_bg,
+                foreground=menu_fg,
+                activebackground=menu_active_bg,
+                activeforeground=menu_active_fg,
+            )
 
 
 
