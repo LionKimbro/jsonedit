@@ -46,6 +46,17 @@
             "The specification describes the new behavior",
             "The feature integrates with existing invariants and policies"
           ]
+        },
+        "B": {
+          "name": "Bug",
+          "definition": "A B-item represents a bug fix request.",
+          "intent": [
+            "Resolve a bug."
+          ],
+          "non-goals": [],
+          "completion-criteria": [
+            "The bug is fixed or made irrelevant"
+          ]
         }
       }
     },
@@ -185,6 +196,24 @@
         "id": "F6",
         "title": "Rename from Child Dict Key",
         "description": "Peculiar feature: When you have a value that is a dictionary with just one key, -- pull that key up so that it replaces your present key, and it's value becomes your value.  This is useful when working with LLMs, because they often return single key dictionaries that you want to incorporate.",
+        "spec-areas": [
+          "UNKNOWN"
+        ],
+        "status": "priority-2"
+      },
+      {
+        "id": "F7",
+        "title": "Array -> Dictionary",
+        "description": "Replace a list with a dictionary, keyed on a value present in all items.",
+        "spec-areas": [
+          "UNKNOWN"
+        ],
+        "status": "priority-2"
+      },
+      {
+        "id": "B1",
+        "title": "explorer.exe cannot execute?",
+        "description": "There's an issue where it keeps saying that explroer.exe cannot execute something; need to identify the source",
         "spec-areas": [
           "UNKNOWN"
         ],

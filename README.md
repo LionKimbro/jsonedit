@@ -39,4 +39,4 @@ jsonedit <filepath>
 
 ## License
 
-MIT. See `LICENSE`.
+CC0 1.0 Universal. See `LICENSE`.
