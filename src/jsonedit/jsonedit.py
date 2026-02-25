@@ -31,6 +31,7 @@ g = {
     "expanded_paths": set(),      # set(tuple)
     "suppress_tree_select": 0,    # recursion guard
     "text_dirty": 0,              # 0/1
+    "doc_dirty": 0,               # 0/1 — doc modified since last save/load
     "last_error": "",
     "embedded_editor_config": None,  # dict or None
     "text_mode": "json"  # "json" | "value"
@@ -121,7 +122,7 @@ def set_status(msg, flags=""):
         raise ValueError("Unknown status flag: %r" % flags)
 
 def update_dirty_indicator():
-    dirty = g["text_dirty"]
+    dirty = g["text_dirty"] or g["doc_dirty"]
     w = widgets.get("status_dirty")
     if w is None:
         return
@@ -383,6 +384,10 @@ def mark_text_dirty(flag):
     widgets["text"].edit_modified(False)
     update_dirty_indicator()
 
+def mark_doc_dirty(flag):
+    g["doc_dirty"] = 1 if flag else 0
+    update_dirty_indicator()
+
 def set_text(s, cursor="start", selection="none"):
     t = widgets["text"]
     t.delete("1.0", "end")
@@ -554,6 +559,7 @@ def open_file(p: Path):
     refresh_tree()
     expand_tree_to_path(first_bifurcation_path(g["doc"]))
     select_path(tuple(), "T")
+    mark_doc_dirty(0)
     set_title()
 
 
@@ -579,6 +585,7 @@ def save_file():
 
     set_status("saved", "V")
     set_status("", "E")
+    mark_doc_dirty(0)
     set_title()
 
 def create_from_clipboard():
@@ -607,6 +614,7 @@ def create_from_clipboard():
     refresh_tree()
     expand_tree_to_path(first_bifurcation_path(g["doc"]))
     select_path(tuple(), "T")
+    mark_doc_dirty(0)
     set_title()
 
 def exit_application():
@@ -688,6 +696,7 @@ def apply_text_to_tree(event=None):
     set_status("valid", "V")
     set_status("", "E")
     mark_text_dirty(0)
+    mark_doc_dirty(1)
 
     # Tree refresh: preserve open nodes, reselect updated node
     refresh_tree("Op")
@@ -740,6 +749,7 @@ def raise_structural_item():
         j = (i - 1) % len(parent)
         parent[i], parent[j] = parent[j], parent[i]
         np = pp + (j,)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(np)
         return
@@ -756,6 +766,7 @@ def raise_structural_item():
         for kk in keys:
             new_parent[kk] = parent[kk]
         set_at_path(pp, new_parent)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(p)
         return
@@ -776,6 +787,7 @@ def lower_structural_item():
         j = (i + 1) % len(parent)
         parent[i], parent[j] = parent[j], parent[i]
         np = pp + (j,)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(np)
         return
@@ -792,6 +804,7 @@ def lower_structural_item():
         for kk in keys:
             new_parent[kk] = parent[kk]
         set_at_path(pp, new_parent)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(p)
         return
@@ -807,6 +820,7 @@ def insert_structural_item_after():
         i = last_key(p)
         parent.insert(i + 1, None)
         np = pp + (i + 1,)
+        mark_doc_dirty(1)
         refresh_tree("O")
         # new node policy: refresh + select entire value
         select_path(np, "TS")
@@ -834,6 +848,7 @@ def insert_structural_item_after():
                 new_parent[kk] = parent[kk]
         set_at_path(pp, new_parent)
         np = pp + (k,)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(np, "TS")
         widgets["text"].focus_set()
@@ -850,6 +865,7 @@ def duplicate_structural_item():
         i = last_key(p)
         parent.insert(i + 1, deep_copy(parent[i]))
         np = pp + (i + 1,)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(np, "TS")
         widgets["tree"].focus_set()
@@ -877,6 +893,7 @@ def duplicate_structural_item():
         set_at_path(pp, new_parent)
 
         np = pp + (k,)
+        mark_doc_dirty(1)
         refresh_tree("O")
         select_path(np, "TS")
         widgets["tree"].focus_set()
@@ -916,6 +933,7 @@ def rename_structural_key():
     set_at_path(pp, new_parent)
 
     np = pp + (k,)
+    mark_doc_dirty(1)
     refresh_tree("O")
     # rename: text untouched
     select_path(np)
@@ -963,6 +981,7 @@ def delete_structural_item():
 
     # execute delete
     delete_at_path(p)
+    mark_doc_dirty(1)
 
     # decide new selection
     np, classification = pick_selection_after_delete(pp, removed)
