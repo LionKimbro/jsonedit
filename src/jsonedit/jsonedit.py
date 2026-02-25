@@ -120,6 +120,16 @@ def set_status(msg, flags=""):
     else:
         raise ValueError("Unknown status flag: %r" % flags)
 
+def update_dirty_indicator():
+    dirty = g["text_dirty"]
+    w = widgets.get("status_dirty")
+    if w is None:
+        return
+    if dirty:
+        w.configure(fg="#f44747")  # red
+    else:
+        w.configure(fg="#4ec94e")  # green
+
 def path_to_str(p):
     if p is None:
         return ""
@@ -371,6 +381,7 @@ def refresh_tree(flags=""):
 def mark_text_dirty(flag):
     g["text_dirty"] = 1 if flag else 0
     widgets["text"].edit_modified(False)
+    update_dirty_indicator()
 
 def set_text(s, cursor="start", selection="none"):
     t = widgets["text"]
@@ -489,6 +500,7 @@ def handle_text_modified(event=None):
     if widgets["text"].edit_modified():
         g["text_dirty"] = 1
         set_status("(uncommitted edits)", "V")
+        update_dirty_indicator()
     # do not clear edit_modified here; we clear it on explicit set/commit
 
 
@@ -1271,14 +1283,20 @@ def setup_gui():
     status.grid_columnconfigure(0, weight=0)
     status.grid_columnconfigure(1, weight=1)
     status.grid_columnconfigure(2, weight=0)
+    status.grid_columnconfigure(3, weight=0)
 
     widgets["status_validity"] = ttk.Label(status, text="(no document)")
     widgets["status_error"] = ttk.Label(status, text="", anchor="w")
     widgets["status_path"] = ttk.Label(status, text="", anchor="e")
+    widgets["status_dirty"] = tk.Label(
+        status, text="●", font=("TkDefaultFont", 10),
+        bg=THEME_DARK["bg"], fg="#4ec94e"
+    )
 
     widgets["status_validity"].grid(row=0, column=0, sticky="w")
     widgets["status_error"].grid(row=0, column=1, sticky="ew", padx=12)
     widgets["status_path"].grid(row=0, column=2, sticky="e")
+    widgets["status_dirty"].grid(row=0, column=3, sticky="e", padx=(4, 0))
 
     # ---- bindings
     tree.bind("<<TreeviewSelect>>", handle_tree_selection_changed)
