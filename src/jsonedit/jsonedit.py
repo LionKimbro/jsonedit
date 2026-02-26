@@ -626,14 +626,9 @@ def spawn_new_instance():
 # ----------------------------
 
 def write_clipboard(s):
-    try:
-        import pyperclip
-    except ImportError:
-        root = widgets["root"]
-        root.clipboard_clear()
-        root.clipboard_append(s)
-    else:
-        pyperclip.copy(s)
+    root = widgets["root"]
+    root.clipboard_clear()
+    root.clipboard_append(s)
 
 def copy_entire_document(flags="P"):
     if not is_doc_loaded():
