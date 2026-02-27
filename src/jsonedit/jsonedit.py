@@ -847,7 +847,7 @@ def _move_structural_item(direction):
         j = (i + direction) % len(keys)
         keys[i], keys[j] = keys[j], keys[i]
         new_parent = {kk: parent[kk] for kk in keys}
-        set_at_path(new_doc, pp, new_parent)
+        new_doc = set_at_path(new_doc, pp, new_parent)
         np = pp + (k,)
         dispatch({"type": action_type, "doc": new_doc,
                   "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
@@ -898,7 +898,7 @@ def insert_structural_item_after():
                 new_parent[kk] = None
             else:
                 new_parent[kk] = parent[kk]
-        set_at_path(new_doc, pp, new_parent)
+        new_doc = set_at_path(new_doc, pp, new_parent)
         np = pp + (k,)
         dispatch({"type": "INSERT_AFTER", "doc": new_doc,
                   "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
@@ -945,7 +945,7 @@ def duplicate_structural_item():
                 new_parent[kk] = deep_copy(parent[oldk])
             else:
                 new_parent[kk] = parent[kk]
-        set_at_path(new_doc, pp, new_parent)
+        new_doc = set_at_path(new_doc, pp, new_parent)
         np = pp + (k,)
         dispatch({"type": "DUPLICATE", "doc": new_doc,
                   "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
@@ -987,7 +987,7 @@ def rename_structural_key():
             new_parent[kk] = val
         else:
             new_parent[kk] = parent[kk]
-    set_at_path(new_doc, pp, new_parent)
+    new_doc = set_at_path(new_doc, pp, new_parent)
 
     np = pp + (k,)
     dispatch({"type": "RENAME_KEY", "doc": new_doc,
