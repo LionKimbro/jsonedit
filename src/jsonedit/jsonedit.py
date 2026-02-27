@@ -797,7 +797,8 @@ def prompt_find_key(previous_term):
 # structural operations
 # ----------------------------
 
-def raise_structural_item():
+def _move_structural_item(direction):
+    """Shared implementation for raise (-1) and lower (+1)."""
     if g_state["doc"] is None:
         return
     kind = g_state["selected_kind"]
@@ -810,15 +811,16 @@ def raise_structural_item():
 
     new_doc = copy.deepcopy(g_state["doc"])
     parent = get_at_path(new_doc, pp)
+    action_type = "RAISE_ITEM" if direction == -1 else "LOWER_ITEM"
 
     if isinstance(parent, list):
         i = last_key(p)
         if len(parent) <= 1:
             return
-        j = (i - 1) % len(parent)
+        j = (i + direction) % len(parent)
         parent[i], parent[j] = parent[j], parent[i]
         np = pp + (j,)
-        dispatch({"type": "RAISE_ITEM", "doc": new_doc,
+        dispatch({"type": action_type, "doc": new_doc,
                   "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
         return
 
@@ -828,58 +830,19 @@ def raise_structural_item():
         if len(keys) <= 1:
             return
         i = keys.index(k)
-        j = (i - 1) % len(keys)
+        j = (i + direction) % len(keys)
         keys[i], keys[j] = keys[j], keys[i]
-        new_parent = {}
-        for kk in keys:
-            new_parent[kk] = parent[kk]
+        new_parent = {kk: parent[kk] for kk in keys}
         set_at_path(new_doc, pp, new_parent)
         np = pp + (k,)
-        dispatch({"type": "RAISE_ITEM", "doc": new_doc,
+        dispatch({"type": action_type, "doc": new_doc,
                   "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
-        return
+
+def raise_structural_item():
+    _move_structural_item(-1)
 
 def lower_structural_item():
-    if g_state["doc"] is None:
-        return
-    kind = g_state["selected_kind"]
-    if kind not in ("object-key", "array-element"):
-        return
-    p = g_state["selected_path"]
-    pp = parent_path(p)
-    if pp is None:
-        return
-
-    new_doc = copy.deepcopy(g_state["doc"])
-    parent = get_at_path(new_doc, pp)
-
-    if isinstance(parent, list):
-        i = last_key(p)
-        if len(parent) <= 1:
-            return
-        j = (i + 1) % len(parent)
-        parent[i], parent[j] = parent[j], parent[i]
-        np = pp + (j,)
-        dispatch({"type": "LOWER_ITEM", "doc": new_doc,
-                  "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
-        return
-
-    if isinstance(parent, dict):
-        k = last_key(p)
-        keys = list(parent.keys())
-        if len(keys) <= 1:
-            return
-        i = keys.index(k)
-        j = (i + 1) % len(keys)
-        keys[i], keys[j] = keys[j], keys[i]
-        new_parent = {}
-        for kk in keys:
-            new_parent[kk] = parent[kk]
-        set_at_path(new_doc, pp, new_parent)
-        np = pp + (k,)
-        dispatch({"type": "LOWER_ITEM", "doc": new_doc,
-                  "selected_path": np, "selected_kind": _kind_of(new_doc, np)})
-        return
+    _move_structural_item(+1)
 
 def insert_structural_item_after():
     if g_state["doc"] is None:
