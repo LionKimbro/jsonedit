@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jsonedit"
-version = "0.1.0"
+version = "0.1.1"
 description = "JSON Tree Editor"
 readme = "README.md"
 license = "CC0-1.0"
