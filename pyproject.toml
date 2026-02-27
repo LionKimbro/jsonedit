@@ -15,7 +15,6 @@ authors = [
 ]
 keywords = ["json", "editor", "edit", "agent", "llm"]
 classifiers = [
-  "License :: CC0 1.0 Universal (CC0 1.0)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.9",
@@ -28,9 +27,6 @@ classifiers = [
 Homepage = "https://github.com/LionKimbro/jsonedit"
 Repository = "https://github.com/LionKimbro/jsonedit"
 Issues = "https://github.com/LionKimbro/jsonedit/issues"
-
-[project.scripts]
-jsonedit = "jsonedit.jsonedit:main"
 
 [project.gui-scripts]
 jsonedit = "jsonedit.jsonedit:main"
