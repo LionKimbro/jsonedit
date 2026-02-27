@@ -698,6 +698,20 @@ def create_from_clipboard():
 def exit_application():
     widgets["root"].destroy()
 
+def open_containing_folder():
+    if g_state["file_path"] is None:
+        return
+    folder = g_state["file_path"].parent
+    try:
+        if sys.platform == "win32":
+            os.startfile(folder)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(folder)])
+        else:
+            subprocess.Popen(["xdg-open", str(folder)])
+    except Exception as e:
+        messagebox.showerror("Open Folder", f"Could not open folder:\n{e}")
+
 def spawn_new_instance():
     try:
         if shutil.which("jsonedit"):
@@ -1196,6 +1210,7 @@ def setup_gui():
     file_menu = tk.Menu(menubar)
     widgets["file_menu"] = file_menu
     file_menu.add_command(label="Open", underline=0, accelerator="Ctrl+O", command=handle_open_file_command)
+    file_menu.add_command(label="Open Folder", underline=5, command=open_containing_folder)
     file_menu.add_command(label="Reload", underline=0, accelerator="Ctrl+!", command=handle_reload_file_command)
     file_menu.add_command(label="Save", underline=0, accelerator="Ctrl+S", command=save_file)
     file_menu.add_separator()
