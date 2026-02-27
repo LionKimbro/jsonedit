@@ -1,0 +1,140 @@
+{
+  "summary": {
+    "overview": "This tool is not primarily a general-purpose JSON editor. It functions as a structured document compositor designed for editing meaning encoded in hierarchical data, with workflows strongly aligned to composing, restructuring, and extracting semantic subtrees—especially for LLM-oriented document construction.",
+    "core_abstraction": "Edit meaning at the node level, stage changes locally, then deliberately commit structure."
+  },
+  "architectural_observations": {
+    "state_first_architecture": {
+      "description": "The application uses an action → reducer → realization pipeline. UI components never own truth; instead they render projections of application state.",
+      "implications": [
+        "Deterministic UI updates",
+        "Explicit transitions between states",
+        "Reduced desynchronization bugs",
+        "Document-centric rather than widget-centric design"
+      ],
+      "analogues": [
+        "Redux-style state management",
+        "Reactive editors",
+        "Notebook/document systems"
+      ]
+    },
+    "immutable_style_updates": {
+      "description": "Structural edits deep-copy the document before mutation, ensuring identity changes and predictable refresh behavior.",
+      "benefits": [
+        "Safe structural edits",
+        "Consistent redraw logic",
+        "Undo-friendly architecture potential",
+        "No partial mutation states"
+      ]
+    },
+    "structural_operations_first_class": {
+      "description": "Operations emphasize manipulation of hierarchy rather than text.",
+      "examples": [
+        "Raise and lower items",
+        "Duplicate subtree",
+        "Insert sibling",
+        "Rename keys",
+        "Delete with intelligent reselection"
+      ],
+      "implication": "Primary editing unit is structure, not lines."
+    },
+    "explicit_commit_boundary": {
+      "description": "Text edits remain sandboxed until explicitly committed.",
+      "effects": [
+        "Encourages experimentation",
+        "Prevents accidental global mutation",
+        "Allows temporary invalid states safely"
+      ]
+    },
+    "paths_replace_line_numbers": {
+      "description": "Navigation and identity rely on structural paths instead of line references.",
+      "example": "[\"section\", 3, \"prompt\"]",
+      "advantages": [
+        "Stable references despite formatting changes",
+        "Semantic precision",
+        "Alignment with tree reasoning"
+      ]
+    },
+    "json_as_living_document": {
+      "description": "Documents can embed editor configuration and metadata, implying persistent workspace artifacts rather than disposable files."
+    }
+  },
+  "gui_and_interaction_philosophy": {
+    "split_brain_editing": {
+      "description": "Tree navigation handles orientation while the text pane handles composition.",
+      "cognitive_model": {
+        "tree": "structure awareness",
+        "text_editor": "semantic rewriting"
+      }
+    },
+    "automatic_semantic_focus": {
+      "description": "Initial expansion skips trivial wrapper layers and jumps to meaningful branching points."
+    },
+    "export_centric_ui": {
+      "description": "Copy and compression actions are prominent, signaling frequent extraction of subtrees for external use."
+    },
+    "workflow_state_visibility": {
+      "description": "Status indicators reflect cognitive workflow state such as uncommitted edits, search context, and selection path."
+    }
+  },
+  "well_suited_workloads": {
+    "llm_prompt_composition": {
+      "priority": "primary",
+      "description": "Building structured prompts, experimenting locally, committing selectively, and exporting compact context fragments for model input.",
+      "typical_workflow": [
+        "Select subtree",
+        "Rewrite content",
+        "Commit structure",
+        "Copy compressed node",
+        "Paste into LLM context"
+      ]
+    },
+    "context_curation_and_packaging": {
+      "description": "Preparing structured context blocks such as examples, schemas, or datasets where selective extraction is common."
+    },
+    "agent_and_workflow_configuration": {
+      "description": "Authoring hierarchical behavior or tool definitions where safe reordering and duplication matter."
+    },
+    "dataset_annotation_and_structured_writing": {
+      "description": "Editing nested annotated documents where JSON acts as a semantic manuscript rather than a config file."
+    },
+    "knowledge_assembly": {
+      "description": "Using JSON as an outlining or hierarchical knowledge construction medium."
+    }
+  },
+  "not_optimized_for": {
+    "general_programming_json_editing": {
+      "missing_features": [
+        "Line numbers",
+        "Syntax highlighting",
+        "Schema validation",
+        "Linting",
+        "Diff integration"
+      ],
+      "reason": "The editor prioritizes structure and meaning over textual programming workflows."
+    },
+    "high_frequency_typing": {
+      "description": "Explicit commit steps intentionally slow rapid edit cycles typical of coding environments."
+    },
+    "massive_machine_generated_json": {
+      "description": "Deep-copy semantics favor correctness and predictability over extreme-scale performance."
+    },
+    "collaborative_version_control_editing": {
+      "description": "No merge or comparison tooling; assumes a single author shaping a document."
+    },
+    "schema_driven_enterprise_data_entry": {
+      "description": "Focuses on structural manipulation rather than validation enforcement."
+    }
+  },
+  "underlying_philosophy": {
+    "assumptions": [
+      "JSON encodes ideas, not just data.",
+      "Structure matters more than formatting.",
+      "Editing should be deliberate and reversible.",
+      "Users think in subtrees rather than lines.",
+      "Exporting fragments is a primary activity.",
+      "Documents are assembled rather than typed."
+    ]
+  },
+  "one_sentence_characterization": "A tree-based document composer with a controlled text mutation chamber, rather than a traditional JSON text editor."
+}
