@@ -43,6 +43,8 @@ g_widget_state = {
     "_iid_counter":         0,
 }
 
+g_script = ""
+
 widgets = {}
 
 THEME_DARK = {
@@ -1191,6 +1193,92 @@ def display_help():
 
 
 # ----------------------------
+# script
+# ----------------------------
+
+def edit_script_dialog():
+    global g_script
+    w = tk.Toplevel(widgets["root"])
+    w.title("Edit Python Script")
+    w.geometry("640x320")
+    w.configure(background=THEME_DARK["bg"])
+    w.resizable(True, True)
+
+    lbl = ttk.Label(w, text="The global variable 'D' will represent the item being manipulated.")
+    lbl.grid(row=0, column=0, sticky="w", padx=6, pady=(6, 2))
+
+    t = tk.Text(w, wrap="none", undo=True, font=("Courier", 10))
+    t.insert("1.0", g_script)
+    t.configure(
+        background=THEME_DARK["text_bg"],
+        foreground=THEME_DARK["text_fg"],
+        insertbackground=THEME_DARK["text_insert"],
+        selectbackground=THEME_DARK["text_select_bg"],
+        selectforeground=THEME_DARK["text_select_fg"],
+    )
+    t.grid(row=1, column=0, sticky="nsew", padx=6, pady=(0, 6))
+
+    sb = ttk.Scrollbar(w, command=t.yview)
+    sb.grid(row=1, column=1, sticky="ns", pady=(0, 6))
+    t.configure(yscrollcommand=sb.set)
+
+    def on_commit():
+        global g_script
+        g_script = t.get("1.0", "end-1c")
+        w.destroy()
+
+    def on_cancel():
+        w.destroy()
+
+    btn_frame = ttk.Frame(w)
+    btn_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=6, pady=(0, 6))
+    ttk.Button(btn_frame, text="Commit", command=on_commit).pack(side="left", padx=4)
+    ttk.Button(btn_frame, text="Cancel", command=on_cancel).pack(side="left", padx=4)
+
+    w.grid_rowconfigure(1, weight=1)
+    w.grid_columnconfigure(0, weight=1)
+
+    w.transient(widgets["root"])
+    w.grab_set()
+    widgets["root"].wait_window(w)
+
+
+def apply_script(event=None):
+    if g_state["doc"] is None:
+        dispatch({"type": "SET_STATUS", "validity": "no document", "error": "No document loaded."})
+        return "break"
+    if not g_script.strip():
+        dispatch({"type": "SET_STATUS", "validity": "no script", "error": "No script defined. Use Script | Edit Script."})
+        return "break"
+    path = g_state["selected_path"]
+    if path is None:
+        return "break"
+
+    new_doc = copy.deepcopy(g_state["doc"])
+    obj = get_at_path(new_doc, path)
+    ns = {"D": obj}
+    try:
+        exec(g_script, {}, ns)
+    except Exception as e:
+        dispatch({"type": "SET_STATUS", "validity": "script error", "error": str(e)})
+        return "break"
+
+    result = ns["D"]
+    if path == tuple():
+        if not isinstance(result, (dict, list)):
+            dispatch({"type": "SET_STATUS", "validity": "script error",
+                      "error": "Script result at root must be {} or []."})
+            return "break"
+        new_doc = result
+    else:
+        set_at_path(new_doc, path, result)
+
+    dispatch({"type": "COMMIT_TEXT", "doc": new_doc})
+    dispatch({"type": "SET_STATUS", "validity": "script applied", "error": ""})
+    return "break"
+
+
+# ----------------------------
 # ui construction
 # ----------------------------
 
@@ -1233,6 +1321,12 @@ def setup_gui():
     edit_menu.add_command(label="Insert Item After", accelerator="Ctrl+Right", command=insert_structural_item_after)
     edit_menu.add_command(label="Lower Item", accelerator="Ctrl+Down", command=lower_structural_item)
     menubar.add_cascade(label="Edit", underline=0, menu=edit_menu)
+
+    script_menu = tk.Menu(menubar)
+    widgets["script_menu"] = script_menu
+    script_menu.add_command(label="Edit Python Script", underline=0, command=edit_script_dialog)
+    script_menu.add_command(label="Apply Script", underline=0, accelerator="Ctrl+Space", command=apply_script)
+    menubar.add_cascade(label="Script", underline=0, menu=script_menu)
 
     help_menu = tk.Menu(menubar)
     widgets["help_menu"] = help_menu
@@ -1332,6 +1426,7 @@ def setup_gui():
     root.bind_all("<Control-h>", lambda e: display_help())
     root.bind_all("<Control-f>", lambda e: action_find_key())
     root.bind_all("<Control-F>", lambda e: action_repeat_find_key())
+    root.bind_all("<Control-space>", apply_script)
 
     tree.bind("<Control-Up>", on_ctrl_up)
     tree.bind("<Control-Down>", on_ctrl_down)
@@ -1432,7 +1527,7 @@ def apply_dark_mode():
     menu_active_bg = THEME_DARK["button_active_bg"]
     menu_active_fg = THEME_DARK["fg"]
 
-    for key in ("menubar", "file_menu", "edit_menu", "help_menu"):
+    for key in ("menubar", "file_menu", "edit_menu", "script_menu", "help_menu"):
         m = widgets.get(key)
         if m:
             m.configure(
