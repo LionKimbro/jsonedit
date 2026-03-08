@@ -163,7 +163,7 @@
         "spec-areas": [
           "unexplored; likely ui"
         ],
-        "status": "priority-1"
+        "status": "complete"
       },
       {
         "id": "F3",
@@ -172,7 +172,7 @@
         "spec-areas": [
           "unexplored; likely ui, synchronization"
         ],
-        "status": "priority-2"
+        "status": "priority-3"
       },
       {
         "id": "F4",
@@ -218,6 +218,15 @@
           "UNKNOWN"
         ],
         "status": "priority-2"
+      },
+      {
+        "id": "F8",
+        "title": "click on path",
+        "description": "Clicking on the path in the lower-right hand corner on the status display, should copy the path to the clipboard.",
+        "spec-areas": [
+          "UNKNOWN"
+        ],
+        "status": "priority-3"
       }
     ]
   }
