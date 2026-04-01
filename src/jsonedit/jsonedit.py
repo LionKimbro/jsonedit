@@ -43,6 +43,12 @@ g_widget_state = {
     "_iid_counter":         0,
 }
 
+g_clipboard_state = {
+    "raw_text":            None,
+    "partial_dict_pair":   None,
+    "full_dict":           None,
+}
+
 g_script = ""
 
 widgets = {}
@@ -191,6 +197,70 @@ def parse_json_text(s):
     except json.JSONDecodeError as e:
         msg = f"{e.msg} (line {e.lineno}, col {e.colno})"
         return None, msg
+
+def parse_partial_dict_pair_text(s):
+    wrapped = "{" + s + "}"
+    obj, err = parse_json_text(wrapped)
+    if err:
+        return None, err
+    if not isinstance(obj, dict) or len(obj) != 1:
+        return None, "Clipboard must contain exactly one key/value pair."
+    key, value = next(iter(obj.items()))
+    return (key, value), None
+
+def inspect_clipboard_text(s):
+    partial_pair, _ = parse_partial_dict_pair_text(s)
+    full_dict, full_err = parse_json_text(s)
+    if full_err or not isinstance(full_dict, dict):
+        full_dict = None
+    return {
+        "raw_text": s,
+        "partial_dict_pair": partial_pair,
+        "full_dict": full_dict,
+    }
+
+def selected_node_is_dict(state):
+    doc = state["doc"]
+    path = state["selected_path"]
+    if doc is None or path is None:
+        return False
+    try:
+        return isinstance(get_at_path(doc, path), dict)
+    except Exception:
+        return False
+
+def refresh_clipboard_state(force=False):
+    root = widgets.get("root")
+    if root is None:
+        return False
+    try:
+        raw_text = root.clipboard_get()
+    except Exception:
+        raw_text = None
+
+    if (not force) and raw_text == g_clipboard_state["raw_text"]:
+        return False
+
+    if raw_text is None:
+        new_state = {"raw_text": None, "partial_dict_pair": None, "full_dict": None}
+    else:
+        new_state = inspect_clipboard_text(raw_text)
+
+    changed = (
+        new_state["partial_dict_pair"] != g_clipboard_state["partial_dict_pair"]
+        or new_state["full_dict"] != g_clipboard_state["full_dict"]
+        or new_state["raw_text"] != g_clipboard_state["raw_text"]
+    )
+    g_clipboard_state.update(new_state)
+    return changed
+
+def poll_clipboard_state():
+    changed = refresh_clipboard_state()
+    if changed:
+        _refresh_menu_enablement(g_state)
+    root = widgets.get("root")
+    if root is not None:
+        root.after(500, poll_clipboard_state)
 
 
 # ----------------------------
@@ -500,31 +570,27 @@ def _refresh_menu_enablement(state):
         return
 
     edit_menu = widgets["edit_menu"]
+    refresh_clipboard_state()
 
     doc = state["doc"]
     kind = state["selected_kind"]
 
     can_struct = (doc is not None) and (kind in ("object-key", "array-element"))
     can_rename = (doc is not None) and (kind == "object-key")
+    can_update_selected_dict = selected_node_is_dict(state)
+    can_add_kv_pair = can_update_selected_dict and (g_clipboard_state["partial_dict_pair"] is not None)
+    can_update_dict = can_update_selected_dict and (g_clipboard_state["full_dict"] is not None)
 
-    # Edit menu indices:
-    # 0 Search
-    # 1 Repeat Search
-    # 2 separator
-    # 3 Raise
-    # 4 Rename
-    # 5 Delete
-    # 6 Duplicate
-    # 7 Insert
-    # 8 Lower
-    edit_menu.entryconfig(0, state=("normal" if can_struct else "disabled"))
-    edit_menu.entryconfig(1, state=("normal" if can_struct else "disabled"))
-    edit_menu.entryconfig(3, state=("normal" if can_struct else "disabled"))
-    edit_menu.entryconfig(4, state=("normal" if can_rename else "disabled"))
-    edit_menu.entryconfig(5, state=("normal" if can_struct else "disabled"))
-    edit_menu.entryconfig(6, state=("normal" if can_struct else "disabled"))
-    edit_menu.entryconfig(7, state=("normal" if can_struct else "disabled"))
-    edit_menu.entryconfig(8, state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_search_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_repeat_search_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_raise_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_rename_index"], state=("normal" if can_rename else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_delete_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_duplicate_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_insert_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_lower_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_add_kv_index"], state=("normal" if can_add_kv_pair else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_update_dict_index"], state=("normal" if can_update_dict else "disabled"))
 
 def _update_title(state):
     """Replaces set_title."""
@@ -1054,6 +1120,34 @@ def delete_structural_item():
         dispatch({"type": "DELETE_ITEM", "doc": new_doc,
                   "selected_path": np, "selected_kind": new_kind})
 
+def add_clipboard_kv_pair():
+    pair = g_clipboard_state["partial_dict_pair"]
+    if pair is None or not selected_node_is_dict(g_state):
+        return
+
+    key, value = pair
+    selected_path = g_state["selected_path"]
+    new_doc = copy.deepcopy(g_state["doc"])
+    target = get_at_path(new_doc, selected_path)
+    target[key] = deep_copy(value)
+
+    dispatch({"type": "COMMIT_TEXT", "doc": new_doc})
+    dispatch({"type": "SET_STATUS", "validity": "dictionary updated", "error": f"Applied key {key!r} from clipboard."})
+
+def update_dictionary_from_clipboard():
+    updates = g_clipboard_state["full_dict"]
+    if updates is None or not selected_node_is_dict(g_state):
+        return
+
+    selected_path = g_state["selected_path"]
+    new_doc = copy.deepcopy(g_state["doc"])
+    target = get_at_path(new_doc, selected_path)
+    for key, value in updates.items():
+        target[key] = deep_copy(value)
+
+    dispatch({"type": "COMMIT_TEXT", "doc": new_doc})
+    dispatch({"type": "SET_STATUS", "validity": "dictionary updated", "error": f"Applied {len(updates)} clipboard entr{'y' if len(updates) == 1 else 'ies'}."})
+
 
 # ----------------------------
 # finding
@@ -1309,17 +1403,50 @@ def setup_gui():
     file_menu.add_command(label="Exit", accelerator="Ctrl+Q", underline=1, command=exit_application)
     menubar.add_cascade(label="File", underline=0, menu=file_menu)
 
-    edit_menu = tk.Menu(menubar)
+    edit_menu = tk.Menu(menubar, postcommand=lambda: _refresh_menu_enablement(g_state))
     widgets["edit_menu"] = edit_menu
+    widgets["edit_menu_search_index"] = None
+    widgets["edit_menu_repeat_search_index"] = None
+    widgets["edit_menu_raise_index"] = None
+    widgets["edit_menu_rename_index"] = None
+    widgets["edit_menu_delete_index"] = None
+    widgets["edit_menu_duplicate_index"] = None
+    widgets["edit_menu_insert_index"] = None
+    widgets["edit_menu_lower_index"] = None
+    widgets["edit_menu_add_kv_index"] = None
+    widgets["edit_menu_update_dict_index"] = None
     edit_menu.add_command(label="Search…", accelerator="Ctrl+F", underline=0, command=action_find_key)
     edit_menu.add_command(label="Repeat Search", accelerator="Shift+Ctrl+F", command=action_repeat_find_key)
+    widgets["edit_menu_search_index"] = edit_menu.index("end")
+    widgets["edit_menu_repeat_search_index"] = edit_menu.index("end")
     edit_menu.add_separator()
     edit_menu.add_command(label="Raise Item", accelerator="Ctrl+Up", command=raise_structural_item)
+    widgets["edit_menu_raise_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Rename Key", accelerator="Ctrl+R", command=rename_structural_key)
+    widgets["edit_menu_rename_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Delete Item", accelerator="Del", command=delete_structural_item)
+    widgets["edit_menu_delete_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Duplicate Item", accelerator="Ctrl+D", command=duplicate_structural_item)
+    widgets["edit_menu_duplicate_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Insert Item After", accelerator="Ctrl+Right", command=insert_structural_item_after)
+    widgets["edit_menu_insert_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Lower Item", accelerator="Ctrl+Down", command=lower_structural_item)
+    widgets["edit_menu_lower_index"] = edit_menu.index("end")
+    edit_menu.add_separator()
+    edit_menu.add_command(label="Add K-V Pair", command=add_clipboard_kv_pair)
+    widgets["edit_menu_add_kv_index"] = edit_menu.index("end")
+    edit_menu.add_command(label="Update Dictionary", command=update_dictionary_from_clipboard)
+    widgets["edit_menu_update_dict_index"] = edit_menu.index("end")
+    widgets["edit_menu_search_index"] = 0
+    widgets["edit_menu_repeat_search_index"] = 1
+    widgets["edit_menu_raise_index"] = 3
+    widgets["edit_menu_rename_index"] = 4
+    widgets["edit_menu_delete_index"] = 5
+    widgets["edit_menu_duplicate_index"] = 6
+    widgets["edit_menu_insert_index"] = 7
+    widgets["edit_menu_lower_index"] = 8
+    widgets["edit_menu_add_kv_index"] = 10
+    widgets["edit_menu_update_dict_index"] = 11
     menubar.add_cascade(label="Edit", underline=0, menu=edit_menu)
 
     script_menu = tk.Menu(menubar)
@@ -1585,6 +1712,8 @@ def main():
         except Exception:
             pass
 
+    refresh_clipboard_state(force=True)
+    poll_clipboard_state()
     root.mainloop()
 
 
