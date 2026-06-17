@@ -1730,6 +1730,8 @@ def main():
             open_file(Path(sys.argv[-1]))
         except Exception:
             pass
+    if g_state["doc"] is None:
+        dispatch({"type": "LOAD_FROM_CLIPBOARD", "doc": {}})
 
     refresh_clipboard_state(force=True)
     poll_clipboard_state()
