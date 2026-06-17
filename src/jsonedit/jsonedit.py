@@ -540,6 +540,7 @@ def set_text(s, cursor="start"):
 
     t.tag_remove("sel", "1.0", "end") if cursor == "start" else None
     t.edit_modified(False)
+    _update_text_dirty_indicator()
 
 def _refresh_text_pane(state, action=None):
     """Replaces refresh_text_for_path."""
@@ -622,6 +623,16 @@ def _update_dirty_indicator(dirty):
     else:
         w.configure(fg="#4ec94e")  # green
 
+def _update_text_dirty_indicator():
+    w = widgets.get("status_text_dirty")
+    t = widgets.get("text")
+    if w is None or t is None:
+        return
+    if t.edit_modified():
+        w.configure(fg="#f44747")  # red
+    else:
+        w.configure(fg="#4ec94e")  # green
+
 
 # ----------------------------
 # realize
@@ -678,6 +689,7 @@ def handle_tree_selection_changed(event=None):
     dispatch({"type": "SELECT_PATH", "path": p, "kind": kind})
 
 def handle_text_modified(event=None):
+    _update_text_dirty_indicator()
     if widgets["text"].edit_modified():
         dispatch({"type": "SET_STATUS", "validity": "(uncommitted edits)", "error": None})
 
@@ -1527,10 +1539,15 @@ def setup_gui():
     status.grid_columnconfigure(1, weight=1)
     status.grid_columnconfigure(2, weight=0)
     status.grid_columnconfigure(3, weight=0)
+    status.grid_columnconfigure(4, weight=0)
 
     widgets["status_validity"] = ttk.Label(status, text="(no document)")
     widgets["status_error"] = ttk.Label(status, text="", anchor="w")
     widgets["status_path"] = ttk.Label(status, text="", anchor="e")
+    widgets["status_text_dirty"] = tk.Label(
+        status, text="●", font=("TkDefaultFont", 10),
+        bg=THEME_DARK["bg"], fg="#4ec94e"
+    )
     widgets["status_dirty"] = tk.Label(
         status, text="●", font=("TkDefaultFont", 10),
         bg=THEME_DARK["bg"], fg="#4ec94e"
@@ -1539,7 +1556,8 @@ def setup_gui():
     widgets["status_validity"].grid(row=0, column=0, sticky="w")
     widgets["status_error"].grid(row=0, column=1, sticky="ew", padx=12)
     widgets["status_path"].grid(row=0, column=2, sticky="e")
-    widgets["status_dirty"].grid(row=0, column=3, sticky="e", padx=(4, 0))
+    widgets["status_text_dirty"].grid(row=0, column=3, sticky="e", padx=(4, 0))
+    widgets["status_dirty"].grid(row=0, column=4, sticky="e", padx=(4, 0))
 
     # ---- bindings
     tree.bind("<<TreeviewSelect>>", handle_tree_selection_changed)
@@ -1704,6 +1722,7 @@ def main():
     widgets["status_validity"].configure(text=g_state["status_validity"])
     widgets["status_error"].configure(text=g_state["status_error"])
     _update_status_path(g_state["selected_path"])
+    _update_text_dirty_indicator()
     _update_dirty_indicator(g_state["dirty"])
 
     if len(sys.argv) > 1:
