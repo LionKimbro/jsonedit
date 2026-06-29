@@ -864,6 +864,64 @@ def copy_selected_subtree(flags="P"):
     write_clipboard(s)
     dispatch({"type": "SET_STATUS", "validity": "copied node", "error": ""})
 
+def _outline_is_expanded(path):
+    iid = g_widget_state["path_to_iid"].get(path)
+    if not iid:
+        return False
+    return bool(widgets["tree"].item(iid, "open"))
+
+def _outline_join_container(open_char, close_char, parts, indent, level):
+    if indent is None:
+        return open_char + ", ".join(parts) + close_char
+
+    pad = " " * (indent * level)
+    child_pad = " " * (indent * (level + 1))
+    return open_char + "\n" + child_pad + (",\n" + child_pad).join(parts) + "\n" + pad + close_char
+
+def _outline_value(path, obj, indent=None, level=0):
+    if isinstance(obj, dict):
+        if not _outline_is_expanded(path):
+            return "{...}"
+        if not obj:
+            return "{}"
+        parts = []
+        for key, value in obj.items():
+            child_path = path + (key,)
+            parts.append(f"{json.dumps(key, ensure_ascii=False)}: {_outline_value(child_path, value, indent, level + 1)}")
+        return _outline_join_container("{", "}", parts, indent, level)
+
+    if isinstance(obj, list):
+        if not _outline_is_expanded(path):
+            return "[...]"
+        if not obj:
+            return "[]"
+        parts = []
+        for index, value in enumerate(obj):
+            child_path = path + (index,)
+            parts.append(_outline_value(child_path, value, indent, level + 1))
+        return _outline_join_container("[", "]", parts, indent, level)
+
+    return '"..."'
+
+def copy_selected_outline(indent=2):
+    if g_state["doc"] is None or g_state["selected_path"] is None:
+        return
+
+    path = g_state["selected_path"]
+    obj = get_at_path(g_state["doc"], path)
+    if g_state["selected_kind"] == "object-key":
+        key = last_key(path)
+        s = _outline_join_container(
+            "{", "}",
+            [f"{json.dumps(key, ensure_ascii=False)}: {_outline_value(path, obj, indent, 1)}"],
+            indent,
+            0,
+        )
+    else:
+        s = _outline_value(path, obj, indent, 0)
+    write_clipboard(s)
+    dispatch({"type": "SET_STATUS", "validity": "copied outline", "error": ""})
+
 
 # ----------------------------
 # commit: text -> tree
@@ -1305,21 +1363,21 @@ def display_help():
         "   • You may freely edit, reformat, or replace the JSON subtree.",
         "",
         "4. Commit your changes:",
-        "   • Press Ctrl+Enter, or",
-        "   • Click the 'Update Tree' button.",
+        "   • Press Ctrl+Enter.",
         "   • The tree view will refresh to reflect your changes.",
         "",
         "5. Export JSON:",
         "   • Use 'Copy Tree' to copy the entire document (pretty-printed).",
         "   • Use 'Copy Tree (compressed)' to copy compact JSON.",
         "   • Use 'Copy Node' to copy only the selected subtree.",
+        "   • Use 'Copy Outline' to copy an abbreviated view from the selected node.",
         "   • Use File | Save to write the document to disk.",
         "",
         "IMPORTANT WARNING",
         "",
         "Edits made in the text pane are NOT automatically committed.",
         "Your changes are only applied when you explicitly commit them",
-        "using Ctrl+Enter or the 'Update Tree' button.",
+        "using Ctrl+Enter.",
         "",
         "If you navigate away from a node without committing,",
         "your edits will be lost.",
@@ -1578,15 +1636,14 @@ def setup_gui():
     b2 = ttk.Button(actions, text="Copy Tree (compressed)", command=lambda: copy_entire_document("C"))
     b3 = ttk.Button(actions, text="Copy Node", command=copy_selected_subtree)
     b4 = ttk.Button(actions, text="Copy Node (compressed)", command=lambda: copy_selected_subtree("C"))
-    b5 = ttk.Button(actions, text="Update Tree", command=apply_text_to_tree)
-    b6 = ttk.Button(actions, text="Emit", command=lambda: None)
-    b6.state(["disabled"])  # placeholder
+    b5 = ttk.Button(actions, text="Copy Outline", command=lambda: copy_selected_outline(indent=2))
+    b6 = ttk.Button(actions, text="Copy Outline (compressed)", command=lambda: copy_selected_outline(indent=None))
 
     b1.grid(row=0, column=0, padx=4)
     b2.grid(row=0, column=1, padx=4)
     b3.grid(row=0, column=2, padx=4)
     b4.grid(row=0, column=3, padx=4)
-    b5.grid(row=0, column=4, padx=16)
+    b5.grid(row=0, column=4, padx=4)
     b6.grid(row=0, column=5, padx=4)
 
     # ---- status bar
