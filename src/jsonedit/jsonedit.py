@@ -578,6 +578,7 @@ def _refresh_menu_enablement(state):
 
     can_struct = (doc is not None) and (kind in ("object-key", "array-element"))
     can_rename = (doc is not None) and (kind == "object-key")
+    can_copy_kv_pair = (doc is not None) and (kind == "object-key")
     can_update_selected_dict = selected_node_is_dict(state)
     can_add_kv_pair = can_update_selected_dict and (g_clipboard_state["partial_dict_pair"] is not None)
     can_update_dict = can_update_selected_dict and (g_clipboard_state["full_dict"] is not None)
@@ -590,6 +591,7 @@ def _refresh_menu_enablement(state):
     edit_menu.entryconfig(widgets["edit_menu_duplicate_index"], state=("normal" if can_struct else "disabled"))
     edit_menu.entryconfig(widgets["edit_menu_insert_index"], state=("normal" if can_struct else "disabled"))
     edit_menu.entryconfig(widgets["edit_menu_lower_index"], state=("normal" if can_struct else "disabled"))
+    edit_menu.entryconfig(widgets["edit_menu_copy_kv_index"], state=("normal" if can_copy_kv_pair else "disabled"))
     edit_menu.entryconfig(widgets["edit_menu_add_kv_index"], state=("normal" if can_add_kv_pair else "disabled"))
     edit_menu.entryconfig(widgets["edit_menu_update_dict_index"], state=("normal" if can_update_dict else "disabled"))
 
@@ -1182,6 +1184,17 @@ def add_clipboard_kv_pair():
     dispatch({"type": "COMMIT_TEXT", "doc": new_doc})
     dispatch({"type": "SET_STATUS", "validity": "dictionary updated", "error": f"Applied key {key!r} from clipboard."})
 
+def copy_selected_kv_pair():
+    if g_state["doc"] is None or g_state["selected_kind"] != "object-key":
+        return
+
+    path = g_state["selected_path"]
+    key = last_key(path)
+    value = get_at_path(g_state["doc"], path)
+    s = f"{json.dumps(key, ensure_ascii=False)}: {pretty(value, indent=2)}"
+    write_clipboard(s)
+    dispatch({"type": "SET_STATUS", "validity": "copied K-V", "error": ""})
+
 def update_dictionary_from_clipboard():
     updates = g_clipboard_state["full_dict"]
     if updates is None or not selected_node_is_dict(g_state):
@@ -1465,6 +1478,7 @@ def setup_gui():
     widgets["edit_menu_duplicate_index"] = None
     widgets["edit_menu_insert_index"] = None
     widgets["edit_menu_lower_index"] = None
+    widgets["edit_menu_copy_kv_index"] = None
     widgets["edit_menu_add_kv_index"] = None
     widgets["edit_menu_update_dict_index"] = None
     edit_menu.add_command(label="Search…", accelerator="Ctrl+F", underline=0, command=action_find_key)
@@ -1485,6 +1499,8 @@ def setup_gui():
     edit_menu.add_command(label="Lower Item", accelerator="Ctrl+Down", command=lower_structural_item)
     widgets["edit_menu_lower_index"] = edit_menu.index("end")
     edit_menu.add_separator()
+    edit_menu.add_command(label="Copy K-V", command=copy_selected_kv_pair)
+    widgets["edit_menu_copy_kv_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Add K-V Pair", command=add_clipboard_kv_pair)
     widgets["edit_menu_add_kv_index"] = edit_menu.index("end")
     edit_menu.add_command(label="Update Dictionary", command=update_dictionary_from_clipboard)
@@ -1497,8 +1513,9 @@ def setup_gui():
     widgets["edit_menu_duplicate_index"] = 6
     widgets["edit_menu_insert_index"] = 7
     widgets["edit_menu_lower_index"] = 8
-    widgets["edit_menu_add_kv_index"] = 10
-    widgets["edit_menu_update_dict_index"] = 11
+    widgets["edit_menu_copy_kv_index"] = 10
+    widgets["edit_menu_add_kv_index"] = 11
+    widgets["edit_menu_update_dict_index"] = 12
     menubar.add_cascade(label="Edit", underline=0, menu=edit_menu)
 
     script_menu = tk.Menu(menubar)
