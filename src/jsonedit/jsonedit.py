@@ -593,6 +593,14 @@ def _refresh_menu_enablement(state):
     edit_menu.entryconfig(widgets["edit_menu_add_kv_index"], state=("normal" if can_add_kv_pair else "disabled"))
     edit_menu.entryconfig(widgets["edit_menu_update_dict_index"], state=("normal" if can_update_dict else "disabled"))
 
+def _refresh_file_menu_enablement(state):
+    if "file_menu" not in widgets:
+        return
+
+    file_menu = widgets["file_menu"]
+    has_file_path = state["file_path"] is not None
+    file_menu.entryconfig(widgets["file_menu_copy_path_index"], state=("normal" if has_file_path else "disabled"))
+
 def _update_title(state):
     """Replaces set_title."""
     base = "JSON Tree Editor"
@@ -758,6 +766,28 @@ def save_file():
 
     dispatch({"type": "SAVE_DONE", "file_path": file_path})
 
+def save_file_as():
+    if g_state["doc"] is None:
+        return
+
+    p = filedialog.asksaveasfilename(
+        title="Save JSON As",
+        defaultextension=".json",
+        filetypes=[("JSON files", "*.json"), ("Text files", "*.txt"), ("All files", "*.*")]
+    )
+    if not p:
+        return
+
+    file_path = Path(p)
+    try:
+        s = pretty(g_state["doc"], indent=2) + "\n"
+        atomic_write_text(file_path, s)
+    except Exception as e:
+        messagebox.showerror("Save As", f"Could not write file:\n{e}")
+        return
+
+    dispatch({"type": "SAVE_DONE", "file_path": file_path})
+
 def create_from_clipboard():
     try:
         s = widgets["root"].clipboard_get()
@@ -791,6 +821,12 @@ def open_containing_folder():
             subprocess.Popen(["xdg-open", str(folder)])
     except Exception as e:
         messagebox.showerror("Open Folder", f"Could not open folder:\n{e}")
+
+def copy_current_file_path():
+    if g_state["file_path"] is None:
+        return
+    write_clipboard(str(g_state["file_path"].resolve()))
+    dispatch({"type": "SET_STATUS", "validity": "copied path", "error": ""})
 
 def spawn_new_instance():
     try:
@@ -1401,12 +1437,16 @@ def setup_gui():
     menubar = tk.Menu(root)
     widgets["menubar"] = menubar
 
-    file_menu = tk.Menu(menubar)
+    file_menu = tk.Menu(menubar, postcommand=lambda: _refresh_file_menu_enablement(g_state))
     widgets["file_menu"] = file_menu
+    widgets["file_menu_copy_path_index"] = None
     file_menu.add_command(label="Open", underline=0, accelerator="Ctrl+O", command=handle_open_file_command)
     file_menu.add_command(label="Open Folder", underline=5, command=open_containing_folder)
+    file_menu.add_command(label="Copy Path", underline=5, command=copy_current_file_path)
+    widgets["file_menu_copy_path_index"] = file_menu.index("end")
     file_menu.add_command(label="Reload", underline=0, accelerator="Ctrl+!", command=handle_reload_file_command)
     file_menu.add_command(label="Save", underline=0, accelerator="Ctrl+S", command=save_file)
+    file_menu.add_command(label="Save As", underline=5, command=save_file_as)
     file_menu.add_separator()
     file_menu.add_command(label="Create from Clipboard", accelerator="Ctrl+N", underline=12, command=create_from_clipboard)
     file_menu.add_separator()
